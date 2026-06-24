@@ -8,6 +8,7 @@
 #include "circe_copy.h"
 #include "circe_entry_modes.h"
 #include "circe_storage.h"
+#include "esp_lvgl_port.h"
 #include "lvgl.h"
 
 #define MAX_BTN_IDS 40
@@ -177,24 +178,39 @@ static void refresh_strand_row(void)
         return;
     }
     lv_obj_clean(s_strand_row);
-    circe_strand_block_t blocks[16];
-    int count = 0;
-    if (!circe_storage_today_strand(blocks, 16, &count) || count == 0) {
-        lv_obj_t *void_block = lv_obj_create(s_strand_row);
-        lv_obj_set_size(void_block, 18, 18);
-        lv_obj_set_style_bg_color(void_block, lv_color_hex(0x2D3748), 0);
-        lv_obj_set_style_border_width(void_block, 1, 0);
-        lv_obj_set_style_border_color(void_block, lv_color_hex(0x4A5568), 0);
-        lv_obj_set_style_radius(void_block, 3, 0);
+    lv_obj_t *void_block = lv_obj_create(s_strand_row);
+    lv_obj_set_size(void_block, 18, 18);
+    lv_obj_set_style_bg_color(void_block, lv_color_hex(0x2D3748), 0);
+    lv_obj_set_style_border_width(void_block, 1, 0);
+    lv_obj_set_style_border_color(void_block, lv_color_hex(0x4A5568), 0);
+    lv_obj_set_style_radius(void_block, 3, 0);
+}
+
+void circe_ui_refresh_strand_from_storage(void)
+{
+    if (!s_strand_row) {
         return;
     }
-    for (int i = 0; i < count; i++) {
-        lv_obj_t *block = lv_obj_create(s_strand_row);
-        lv_obj_set_size(block, 18, 18);
-        lv_obj_set_style_bg_color(block, lv_color_hex(parse_hex_color(blocks[i].color_hex)), 0);
-        lv_obj_set_style_border_width(block, 0, 0);
-        lv_obj_set_style_radius(block, 3, 0);
+    circe_strand_block_t blocks[16];
+    int count = 0;
+    circe_storage_today_strand(blocks, 16, &count);
+
+    if (!lvgl_port_lock(1000)) {
+        return;
     }
+    lv_obj_clean(s_strand_row);
+    if (count == 0) {
+        refresh_strand_row();
+    } else {
+        for (int i = 0; i < count; i++) {
+            lv_obj_t *block = lv_obj_create(s_strand_row);
+            lv_obj_set_size(block, 18, 18);
+            lv_obj_set_style_bg_color(block, lv_color_hex(parse_hex_color(blocks[i].color_hex)), 0);
+            lv_obj_set_style_border_width(block, 0, 0);
+            lv_obj_set_style_radius(block, 3, 0);
+        }
+    }
+    lvgl_port_unlock();
 }
 
 static void btn_event_cb(lv_event_t *e)
@@ -338,7 +354,6 @@ void circe_ui_set_engine(circe_conversation_engine_t *engine)
 void circe_ui_init(void)
 {
     setup_encoder_group();
-    refresh_strand_row();
 
     s_scr = lv_obj_create(NULL);
     lv_scr_load(s_scr);
@@ -489,7 +504,6 @@ void circe_ui_show_step(circe_flow_step_t step)
         break;
 
     case CIRCE_FLOW_STRAND: {
-        refresh_strand_row();
         circe_strand_block_t blocks[16];
         int count = 0;
         circe_storage_today_strand(blocks, 16, &count);

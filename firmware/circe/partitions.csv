@@ -1,6 +1,12 @@
-# Name,   Type, SubType, Offset,  Size, Flags
-nvs,        data, nvs,     ,        200K,
-otadata,    data, ota,     ,        0x2000,
-phy_init,   data, phy,     ,        0x1000,
-storage,    data, spiffs,  ,        2M,
-factory,    app,  factory, ,        6M,
+# Name,   Type,  SubType,  Offset,    Size,   Flags
+# SenseCAP Watcher layout — must match device partition table (do not flash this table to device).
+# Bootloader 0x0 + partition table 0x8000; first data partition at 0x9000.
+
+nvsfactory, data,   nvs,        ,     200K,
+nvs,        data,   nvs,        ,     840K,
+otadata,    data,   ota,        ,     0x2000,
+phy_init,   data,   phy,        ,     0x1000,
+ota_0,      app,    ota_0,      ,     12M,
+ota_1,      app,    ota_1,      ,     12M,
+model,      data,   spiffs,     ,     1024K,
+storage,    data,   spiffs,     ,     6080K,

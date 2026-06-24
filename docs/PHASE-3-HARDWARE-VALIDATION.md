@@ -1,7 +1,21 @@
 # Phase 3 Hardware Validation Checklist
 
-Environment: dev build host, **no SenseCAP Watcher connected**  
-Date: 2026-06-24
+Environment: SenseCAP Watcher connected on `/dev/ttyACM1`  
+Date: 2026-06-24 (updated after partition fix)
+
+---
+
+## Partition mismatch (root cause)
+
+**Symptom:** After flash, monitor still showed `Project name: factory_firmware`.
+
+**Cause:** CIRCE used a generic single-app partition table (`factory` at 0x10000). The Watcher uses **OTA slots** — factory firmware runs from `ota_0` at **0x110000**.
+
+**Fix:** Replaced `firmware/circe/partitions.csv` with Watcher-compatible OTA layout matching device boot table. Set `CONFIG_ESPTOOLPY_FLASHSIZE_32MB` and `CONFIG_PARTITION_TABLE_CUSTOM` in `sdkconfig.defaults`.
+
+**Important:** Partition table is for **build/link only**. Do not `partition-table-flash` to device.
+
+See [hardware/WATCHER_FLASHING_NOTES.md](hardware/WATCHER_FLASHING_NOTES.md).
 
 ---
 
@@ -9,71 +23,80 @@ Date: 2026-06-24
 
 | Item | Result |
 |------|--------|
-| ESP-IDF version | **v5.2** (`IDF_PATH=/home/heathen/esp-idf`, tag `v5.2`) |
+| ESP-IDF version | **v5.2** |
 | Target | esp32s3 |
-| Build | **PASS** — `firmware/circe/build/circe.bin` |
-| Flash port | **Not attempted** — no `/dev/ttyACM*` or `/dev/ttyUSB*` |
-| Monitor port | **Not attempted** |
-| Flash command (documented) | `idf.py --port /dev/ttyACM0 -b 2000000 app-flash` |
-| nvsfactory protection | Use **`app-flash` only**, not full flash |
+| Build | **PASS** |
+| Flash port | **`/dev/ttyACM1`** |
+| Monitor port | **`/dev/ttyACM1`** |
+| Flash command | `idf.py --port /dev/ttyACM1 -b 2000000 app-flash` |
+| Flash address | `0x110000` (ota_0) only |
+| nvsfactory | Protected — app-flash only |
 
 ---
 
-## Checklist
+## Boot validation (monitor)
+
+| Check | Result | Evidence |
+|-------|--------|----------|
+| Project name | **PASS** | `Project name: circe` |
+| Loaded partition | **PASS** | `Loaded app from partition at offset 0x110000` |
+| Partition table match | **PASS** | Boot table matches Watcher layout |
+| SD mount | **PASS** | `SD card mounted at /sdcard` |
+| Storage init | **PASS** | `storage ready at /sdcard/circe` |
+| Touch init | **PASS** | `Touch panel create success` |
+| Encoder init | **PASS** | `Knob Config Succeed` |
+| Boot stability | **PASS** | 30s monitor — no panic/reboot after init-order fix |
+| factory_firmware | **GONE** | No longer appears in boot logs |
+
+---
+
+## Interactive checklist (on-device — user)
 
 | # | Test | Result | Notes |
 |---|------|--------|-------|
-| 1 | Firmware boots | **BLOCKED** | No hardware |
-| 2 | Circe home screen appears | **BLOCKED** | |
-| 3 | Touch works | **BLOCKED** | |
-| 4 | Encoder/dial works | **BLOCKED** | Code attaches LVGL encoder group; needs device |
-| 5 | microSD mounts | **BLOCKED** | Boot logs `SD card mounted at /sdcard` when card present |
-| 6 | Body-first flow saves entry | **BLOCKED** | Flow implemented + build OK |
-| 7 | Quick entry 2–4 taps | **CODE OK** | 2 taps: Quick → preset; optional Home = 3 |
-| 8 | Entry review loads saved entry | **BLOCKED** | |
-| 9 | Hard delete removes entry | **BLOCKED** | Self-test covers logic on boot if SD ready |
-| 10 | Rebuild index works | **BLOCKED** | Diagnostics button wired |
-| 11 | Entry persists after reboot | **BLOCKED** | |
-| 12 | Storage self-test passes | **BLOCKED** | Runs on boot when SD + storage init OK |
-| 13 | Sensation list usable on 1.45" | **BLOCKED** | Scroll panel added; needs touch test |
-| 14 | Color skip/save clear | **BLOCKED** | Skip → save done screen with privacy copy |
-| 15 | Privacy copy visible | **CODE OK** | Save done + diagnostics standalone notice |
+| 1 | Firmware boots | **PASS** | Monitor proof above |
+| 2 | Circe home screen appears | **PENDING** | Logs stable; visual confirm on device |
+| 3 | Touch works | **PENDING** | Touch panel initialized |
+| 4 | Encoder/dial works | **PENDING** | Knob initialized |
+| 5 | microSD mounts | **PASS** | Log proof |
+| 6 | Body-first flow saves entry | **PENDING** | |
+| 7 | Quick entry 2–4 taps | **PENDING** | |
+| 8 | Entry review loads saved entry | **PENDING** | |
+| 9 | Hard delete removes entry | **PENDING** | |
+| 10 | Rebuild index works | **PENDING** | Diagnostics → Rebuild |
+| 11 | Entry persists after reboot | **PENDING** | |
+| 12 | Storage self-test passes | **PENDING** | Run from Diagnostics (not on boot) |
+| 13 | Sensation list scroll | **PENDING** | |
+| 14 | Color skip/save clear | **PENDING** | |
+| 15 | Privacy copy visible | **PENDING** | Save done + More → Diagnostics |
 
 ---
 
-## Expected boot log (when hardware available)
+## Boot crash fixed (2026-06-24)
 
-```
-I (xxx) circe_main: CIRCE standalone MVP starting
-I (xxx) circe_main: SD card mounted at /sdcard
-I (xxx) circe_storage: storage ready at /sdcard/circe
-I (xxx) circe_storage: storage self test passed
-```
+Initial CIRCE boot on hardware hit:
 
-If SD missing:
+1. `assert failed: vTaskGenericNotifyGiveFromISR` — boot self-test + LVGL/touch race
+2. `Interrupt wdt timeout` — SD I/O under `lvgl_port_lock` during Today strand load
 
-```
-W (xxx) circe_main: SD card init failed — storage will not work
-```
+**Fixes:**
+
+- Storage init before LVGL; removed boot self-test (Diagnostics only)
+- No SD reads under LVGL lock on home screen
+- `lvgl_port_lock(-1)` for UI init
 
 ---
 
-## Manual test script (for Watcher owner)
+## Manual test script
 
-1. Insert FAT32 microSD, flash `app-flash`, open monitor.
-2. Confirm SD mount + self-test pass.
-3. **Body:** Body → chest → tight → intensity → Continue → Skip color → Home from save done.
-4. **More → Rebuild index** — count should match entries.
-5. **Review** — latest entry visible.
-6. **Delete** — confirm removed.
-7. **Reboot** — entry still in Review.
-8. **Quick** — Quick → Chest tight (2 taps).
-9. **Today strand** — color blocks on home + More → Today strand.
-10. **Encoder** — rotate to focus buttons, press to select.
+1. Flash: `idf.py --port /dev/ttyACM1 -b 2000000 app-flash`
+2. Monitor: confirm `Project name: circe`
+3. Body / Quick / Review / Delete / Reboot flows
+4. More → Run self test / Rebuild index
 
 ---
 
-## Blockers
+## Rollback
 
-- No serial device detected on build host.
-- All on-device results remain **BLOCKED** until Watcher + microSD are connected.
+- nvsfactory backup: `backups/watcher/nvsfactory.bin`
+- Factory app may remain in ota_1 — see WATCHER_FLASHING_NOTES.md

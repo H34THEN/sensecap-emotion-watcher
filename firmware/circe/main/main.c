@@ -27,21 +27,18 @@ void app_main(void)
 
     bsp_rtc_init();
 
+    circe_conversation_init(&s_engine);
+    s_engine.storage_ready = circe_storage_init();
+
     lv_disp_t *disp = bsp_lvgl_init();
     if (!disp) {
         ESP_LOGE(TAG, "LVGL init failed");
         return;
     }
 
-    circe_conversation_init(&s_engine);
-    s_engine.storage_ready = circe_storage_init();
-    if (s_engine.storage_ready) {
-        circe_storage_run_self_test();
-    }
-
     circe_ui_set_engine(&s_engine);
 
-    if (lvgl_port_lock(0)) {
+    if (lvgl_port_lock(-1)) {
         circe_ui_init();
         circe_ui_show_step(CIRCE_FLOW_HOME);
         lvgl_port_unlock();
