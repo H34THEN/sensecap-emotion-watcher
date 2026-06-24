@@ -1,0 +1,51 @@
+#pragma once
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "circe_conversation_engine.h"
+#include "circe_entry.h"
+#include "circe_save.h"
+#include "circe_storage.h"
+
+typedef enum {
+    CIRCE_WORKER_TEST_SAVE = 0,
+    CIRCE_WORKER_SAVE_ENTRY,
+    CIRCE_WORKER_DELETE_ENTRY,
+    CIRCE_WORKER_REBUILD_INDEX,
+    CIRCE_WORKER_STORAGE_PROBE,
+    CIRCE_WORKER_REINIT_STORAGE,
+    CIRCE_WORKER_LOAD_REVIEW,
+} circe_worker_cmd_type_t;
+
+typedef struct {
+    circe_worker_cmd_type_t type;
+    bool success;
+    char summary[128];
+    circe_save_result_t save_result;
+    circe_save_report_t save_report;
+    circe_save_self_test_result_t test_save;
+    circe_entry_t entry;
+    char entry_id[CIRCE_MAX_ID];
+    char saved_color[CIRCE_MAX_COLOR];
+    int rebuild_count;
+    bool storage_ready;
+    bool review_found;
+    circe_flow_step_t success_step;
+    int success_message;
+    bool show_quick_subline;
+} circe_worker_completion_t;
+
+typedef void (*circe_worker_done_fn)(const circe_worker_completion_t *result, void *user_data);
+
+void circe_worker_init(circe_worker_done_fn on_done, void *user_data);
+bool circe_worker_is_busy(void);
+
+bool circe_worker_post_test_save(void);
+bool circe_worker_post_save_entry(const circe_entry_t *entry, bool editing_existing, circe_flow_step_t success_step,
+                                  int success_message, bool show_quick_subline);
+bool circe_worker_post_delete_entry(const char *id);
+bool circe_worker_post_rebuild_index(void);
+bool circe_worker_post_storage_probe(void);
+bool circe_worker_post_reinit_storage(void);
+bool circe_worker_post_load_review(void);

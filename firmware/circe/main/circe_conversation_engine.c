@@ -31,7 +31,9 @@ circe_pattern_key_t circe_conversation_prompt_for_step(const circe_conversation_
 {
     switch (engine->step) {
     case CIRCE_FLOW_HOME:
-        return CIRCE_PATTERN_GREET_FIRST_TODAY;
+        return CIRCE_PATTERN_HOME_HEADING;
+    case CIRCE_FLOW_READY:
+        return CIRCE_PATTERN_READY_PROMPT;
     case CIRCE_FLOW_BODY_AREA:
         return CIRCE_PATTERN_BODY_UNKNOWN_OKAY;
     case CIRCE_FLOW_BODY_SENSATION:
@@ -46,6 +48,8 @@ circe_pattern_key_t circe_conversation_prompt_for_step(const circe_conversation_
         return CIRCE_PATTERN_QUICK_ONE_TAP;
     case CIRCE_FLOW_REVIEW:
         return CIRCE_PATTERN_SAVE_CONFIRMED;
+    case CIRCE_FLOW_REVIEW_EMPTY:
+        return CIRCE_PATTERN_HOME_REVIEW;
     case CIRCE_FLOW_DELETE_CONFIRM:
         return CIRCE_PATTERN_DELETE_CONFIRM;
     case CIRCE_FLOW_BODY_ADD_MORE:
@@ -58,6 +62,10 @@ circe_pattern_key_t circe_conversation_prompt_for_step(const circe_conversation_
         return CIRCE_PATTERN_EDIT_PROMPT;
     case CIRCE_FLOW_EDIT_COLOR:
         return CIRCE_PATTERN_EDIT_COLOR;
+    case CIRCE_FLOW_MORE:
+        return CIRCE_PATTERN_MORE_MENU;
+    case CIRCE_FLOW_APPEARANCE:
+        return CIRCE_PATTERN_APPEARANCE_PROMPT;
     case CIRCE_FLOW_DIAGNOSTICS:
         return CIRCE_PATTERN_DIAG_TITLE;
     default:

@@ -22,4 +22,5 @@ extern const char *circe_body_sensations[];
 extern const int circe_body_sensation_count;
 
 extern const char *circe_quick_colors[];
+extern const char *circe_quick_color_labels[];
 extern const int circe_quick_color_count;

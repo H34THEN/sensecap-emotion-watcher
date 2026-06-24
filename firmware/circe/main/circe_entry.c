@@ -28,12 +28,8 @@ static void local_date_now(char *buf, size_t len)
 
 void circe_entry_generate_id(circe_entry_t *entry)
 {
-    uint8_t rnd[16];
-    esp_fill_random(rnd, sizeof(rnd));
-    snprintf(entry->id, sizeof(entry->id),
-             "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-             rnd[0], rnd[1], rnd[2], rnd[3], rnd[4], rnd[5], rnd[6], rnd[7], rnd[8], rnd[9], rnd[10], rnd[11],
-             rnd[12], rnd[13], rnd[14], rnd[15]);
+    uint32_t rnd = esp_random();
+    snprintf(entry->id, sizeof(entry->id), "%08X", (unsigned)rnd);
 }
 
 void circe_entry_init_defaults(circe_entry_t *entry, circe_entry_mode_t mode)
@@ -148,6 +144,12 @@ bool circe_entry_to_json(const circe_entry_t *entry, char *out, size_t out_len)
     char *printed = cJSON_PrintUnformatted(root);
     cJSON_Delete(root);
     if (!printed) {
+        return false;
+    }
+    size_t need = strlen(printed) + 1;
+    if (need > out_len) {
+        ESP_LOGE(TAG, "JSON too large: need %u have %u", (unsigned)need, (unsigned)out_len);
+        cJSON_free(printed);
         return false;
     }
     strncpy(out, printed, out_len - 1);

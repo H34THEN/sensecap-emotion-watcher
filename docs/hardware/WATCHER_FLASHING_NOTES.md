@@ -98,3 +98,22 @@ Factory app remains in **ota_1** if not overwritten. Recovery options (user deci
 2. Switch otadata boot slot (advanced — modifies otadata only).
 
 Do not erase flash.
+
+---
+
+## SD card layout (Storage-Repair phase)
+
+CIRCE resolves paths at boot:
+
+| Path | Purpose |
+|------|---------|
+| `/sdcard/CIRCE` | Base (also accepts existing `/sdcard/circe`) |
+| `/sdcard/CIRCE/ENTRIES` | Entry JSON files |
+| `/sdcard/CIRCE/INDEX` | `entry_index.jsonl`, `.dirty` |
+| `/sdcard/CIRCE/CACHE` | Strand cache |
+
+FAT is case-insensitive; PC may show `CIRCE/INDEX` while logs show `/sdcard/circe` — same folder.
+
+Storage readiness requires **probe PASS** (write/read/delete `storage_probe.tmp`), not just mount.
+
+If `app-flash` fails with port busy, close serial monitor on `/dev/ttyACM1` and retry.

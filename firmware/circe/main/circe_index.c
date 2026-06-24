@@ -1,17 +1,56 @@
 #include "circe_index.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "cJSON.h"
+#include "circe_buf.h"
+#include "circe_storage_paths.h"
 #include "esp_log.h"
 
 static const char *TAG = "circe_index";
 
-#define CIRCE_INDEX_PATH "/sdcard/circe/index/entry_index.jsonl"
-
 static bool s_open = false;
+static bool s_index_dirty = false;
+
+static bool ensure_index_dir(void)
+{
+    return mkdir(circe_storage_path_index_dir(), 0755) == 0 || errno == EEXIST;
+}
+
+void circe_index_mark_dirty(void)
+{
+    s_index_dirty = true;
+    ensure_index_dir();
+    FILE *f = fopen(circe_storage_path_index_dirty(), "w");
+    if (f) {
+        fputc('1', f);
+        fclose(f);
+    }
+    ESP_LOGW(TAG, "index marked dirty");
+}
+
+void circe_index_clear_dirty(void)
+{
+    s_index_dirty = false;
+    unlink(circe_storage_path_index_dirty());
+}
+
+bool circe_index_is_dirty(void)
+{
+    return s_index_dirty;
+}
+
+void circe_index_load_dirty_state(void)
+{
+    s_index_dirty = (access(circe_storage_path_index_dirty(), F_OK) == 0);
+    if (s_index_dirty) {
+        ESP_LOGW(TAG, "index dirty flag present on boot");
+    }
+}
 
 bool circe_index_open(void)
 {
@@ -26,17 +65,31 @@ void circe_index_close(void)
 
 static bool rewrite_index_filter(bool (*drop_line)(cJSON *obj, void *ctx), void *ctx)
 {
-    FILE *in = fopen(CIRCE_INDEX_PATH, "r");
-    FILE *out = fopen(CIRCE_INDEX_PATH ".tmp", "w");
+    const char *index_path = circe_storage_path_index_file();
+    char tmp_path[120];
+    if (!circe_storage_path_join(tmp_path, sizeof(tmp_path), circe_storage_path_index_dir(), "ENTRY.TMP")) {
+        return false;
+    }
+
+    FILE *in = fopen(index_path, "r");
+    FILE *out = fopen(tmp_path, "w");
     if (!out) {
         if (in) {
             fclose(in);
         }
         return false;
     }
-    char line[640];
+    char *line = circe_buf_alloc(CIRCE_INDEX_LINE_SIZE);
+    if (!line) {
+        if (in) {
+            fclose(in);
+        }
+        fclose(out);
+        unlink(tmp_path);
+        return false;
+    }
     if (in) {
-        while (fgets(line, sizeof(line), in)) {
+        while (fgets(line, CIRCE_INDEX_LINE_SIZE, in)) {
             cJSON *obj = cJSON_Parse(line);
             if (!obj) {
                 continue;
@@ -52,10 +105,11 @@ static bool rewrite_index_filter(bool (*drop_line)(cJSON *obj, void *ctx), void 
         }
         fclose(in);
     }
+    circe_buf_free(line);
     fflush(out);
     fsync(fileno(out));
     fclose(out);
-    rename(CIRCE_INDEX_PATH ".tmp", CIRCE_INDEX_PATH);
+    rename(tmp_path, index_path);
     return true;
 }
 
@@ -71,7 +125,18 @@ bool circe_index_insert(const circe_entry_t *entry, const char *json_path)
     if (!s_open || !entry) {
         return false;
     }
-    rewrite_index_filter(drop_matching_id, (void *)entry->id);
+    if (!ensure_index_dir()) {
+        ESP_LOGE(TAG, "index dir missing");
+        return false;
+    }
+
+    char existing[128];
+    if (circe_index_get_json_path(entry->id, existing, sizeof(existing))) {
+        if (!rewrite_index_filter(drop_matching_id, (void *)entry->id)) {
+            ESP_LOGE(TAG, "index rewrite failed for id=%s", entry->id);
+            return false;
+        }
+    }
 
     cJSON *obj = cJSON_CreateObject();
     cJSON_AddStringToObject(obj, "id", entry->id);
@@ -85,9 +150,10 @@ bool circe_index_insert(const circe_entry_t *entry, const char *json_path)
         return false;
     }
 
-    FILE *f = fopen(CIRCE_INDEX_PATH, "a");
+    FILE *f = fopen(circe_storage_path_index_file(), "a");
     if (!f) {
         cJSON_free(line);
+        ESP_LOGE(TAG, "index append open failed path=%s errno=%d", circe_storage_path_index_file(), errno);
         return false;
     }
     fprintf(f, "%s\n", line);
@@ -96,6 +162,17 @@ bool circe_index_insert(const circe_entry_t *entry, const char *json_path)
     fclose(f);
     cJSON_free(line);
     return true;
+}
+
+bool circe_index_append_best_effort(const circe_entry_t *entry, const char *json_path)
+{
+    if (circe_index_insert(entry, json_path)) {
+        return true;
+    }
+    circe_index_mark_dirty();
+    ESP_LOGW(TAG, "index append best-effort failed id=%s path=%s", entry ? entry->id : "?",
+             json_path ? json_path : "?");
+    return false;
 }
 
 bool circe_index_delete(const char *id)
@@ -108,14 +185,18 @@ bool circe_index_delete(const char *id)
 
 static bool scan_index(const char *want_id, char *path, size_t path_len, char *latest_id, size_t latest_id_len)
 {
-    FILE *f = fopen(CIRCE_INDEX_PATH, "r");
+    FILE *f = fopen(circe_storage_path_index_file(), "r");
     if (!f) {
         return false;
     }
-    char line[640];
+    char *line = circe_buf_alloc(CIRCE_INDEX_LINE_SIZE);
+    if (!line) {
+        fclose(f);
+        return false;
+    }
     char best_at[32] = {0};
     bool found = false;
-    while (fgets(line, sizeof(line), f)) {
+    while (fgets(line, CIRCE_INDEX_LINE_SIZE, f)) {
         cJSON *obj = cJSON_Parse(line);
         if (!obj) {
             continue;
@@ -146,6 +227,7 @@ static bool scan_index(const char *want_id, char *path, size_t path_len, char *l
         }
         cJSON_Delete(obj);
     }
+    circe_buf_free(line);
     fclose(f);
     return found;
 }
@@ -171,12 +253,16 @@ bool circe_index_count(int *count)
         return false;
     }
     *count = 0;
-    FILE *f = fopen(CIRCE_INDEX_PATH, "r");
+    FILE *f = fopen(circe_storage_path_index_file(), "r");
     if (!f) {
         return true;
     }
-    char line[640];
-    while (fgets(line, sizeof(line), f)) {
+    char *line = circe_buf_alloc(CIRCE_INDEX_LINE_SIZE);
+    if (!line) {
+        fclose(f);
+        return false;
+    }
+    while (fgets(line, CIRCE_INDEX_LINE_SIZE, f)) {
         cJSON *obj = cJSON_Parse(line);
         if (!obj) {
             continue;
@@ -187,13 +273,14 @@ bool circe_index_count(int *count)
         }
         cJSON_Delete(obj);
     }
+    circe_buf_free(line);
     fclose(f);
     return true;
 }
 
 bool circe_index_clear(void)
 {
-    FILE *f = fopen(CIRCE_INDEX_PATH, "w");
+    FILE *f = fopen(circe_storage_path_index_file(), "w");
     if (!f) {
         return false;
     }
@@ -207,12 +294,16 @@ bool circe_index_list_for_date(const char *local_date, circe_index_row_t *rows, 
         return false;
     }
     *out_count = 0;
-    FILE *f = fopen(CIRCE_INDEX_PATH, "r");
+    FILE *f = fopen(circe_storage_path_index_file(), "r");
     if (!f) {
         return true;
     }
-    char line[640];
-    while (fgets(line, sizeof(line), f)) {
+    char *line = circe_buf_alloc(CIRCE_INDEX_LINE_SIZE);
+    if (!line) {
+        fclose(f);
+        return false;
+    }
+    while (fgets(line, CIRCE_INDEX_LINE_SIZE, f)) {
         cJSON *obj = cJSON_Parse(line);
         if (!obj) {
             continue;
@@ -248,6 +339,7 @@ bool circe_index_list_for_date(const char *local_date, circe_index_row_t *rows, 
         (*out_count)++;
         cJSON_Delete(obj);
     }
+    circe_buf_free(line);
     fclose(f);
 
     for (int i = 0; i < *out_count - 1; i++) {

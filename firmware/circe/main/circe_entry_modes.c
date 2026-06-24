@@ -16,8 +16,9 @@ const char *circe_body_sensations[] = {
 };
 const int circe_body_sensation_count = sizeof(circe_body_sensations) / sizeof(circe_body_sensations[0]);
 
-const char *circe_quick_colors[] = {"#808080", "#4A5568", "#68D391", "#9B59B6"};
-const int circe_quick_color_count = 4;
+const char *circe_quick_colors[] = {"#808080", "#4A5568", "#68D391", "#9B59B6", "#7DF9FF"};
+const char *circe_quick_color_labels[] = {"Gray", "Slate", "Green", "Purple", "Cyan"};
+const int circe_quick_color_count = 5;
 
 const circe_quick_preset_t circe_quick_presets[CIRCE_QUICK_PRESET_COUNT] = {
     {"Chest tight", "chest", "tight", "#4A5568"},

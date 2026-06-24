@@ -3,6 +3,9 @@
 
 #include "circe_conversation_engine.h"
 #include "circe_storage.h"
+#include "circe_strand_cache.h"
+#include "circe_theme.h"
+#include "circe_fonts.h"
 #include "circe_ui.h"
 
 static const char *TAG = "circe_main";
@@ -29,6 +32,11 @@ void app_main(void)
 
     circe_conversation_init(&s_engine);
     s_engine.storage_ready = circe_storage_init();
+    circe_fonts_init();
+    circe_theme_init();
+    if (s_engine.storage_ready) {
+        circe_strand_cache_init();
+    }
 
     lv_disp_t *disp = bsp_lvgl_init();
     if (!disp) {
@@ -41,6 +49,7 @@ void app_main(void)
     if (lvgl_port_lock(-1)) {
         circe_ui_init();
         circe_ui_show_step(CIRCE_FLOW_HOME);
+        circe_ui_apply_boot_strand();
         lvgl_port_unlock();
     }
 
