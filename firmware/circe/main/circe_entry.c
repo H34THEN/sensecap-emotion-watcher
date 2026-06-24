@@ -70,6 +70,11 @@ void circe_entry_set_timestamp_now(circe_entry_t *entry)
     local_date_now(entry->local_date, sizeof(entry->local_date));
 }
 
+void circe_entry_touch_updated(circe_entry_t *entry)
+{
+    iso8601_now(entry->updated_at, sizeof(entry->updated_at));
+}
+
 const char *circe_entry_mode_str(circe_entry_mode_t mode)
 {
     switch (mode) {

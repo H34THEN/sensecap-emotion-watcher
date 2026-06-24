@@ -30,6 +30,17 @@ static const circe_copy_row_t s_copy[] = {
     {CIRCE_PATTERN_HOME_REVIEW, "home.review", "Review"},
     {CIRCE_PATTERN_HOME_MORE, "home.more", "More"},
     {CIRCE_PATTERN_DIAG_TITLE, "diag.title", "Storage health"},
+    {CIRCE_PATTERN_BODY_ADD_ANOTHER, "body.add_another", "Add another sensation?"},
+    {CIRCE_PATTERN_BODY_CONTINUE, "body.continue_save", "Continue"},
+    {CIRCE_PATTERN_NAV_BACK, "nav.back", "Back"},
+    {CIRCE_PATTERN_NAV_CANCEL, "nav.cancel", "Cancel"},
+    {CIRCE_PATTERN_PRIVACY_STANDALONE, "privacy.standalone",
+     "CIRCE is standalone-first. Entries stay on this device unless you export them."},
+    {CIRCE_PATTERN_STRAND_TODAY, "strand.today", "Today"},
+    {CIRCE_PATTERN_EDIT_PROMPT, "edit.prompt", "What would you like to change?"},
+    {CIRCE_PATTERN_EDIT_COLOR, "edit.color", "Change color"},
+    {CIRCE_PATTERN_EDIT_ADD_SENSATION, "edit.add_sensation", "Add body sensation"},
+    {CIRCE_PATTERN_EDIT_SAVED, "edit.saved", "Updated and saved privately."},
 };
 
 const char *circe_copy_get(circe_pattern_key_t key)

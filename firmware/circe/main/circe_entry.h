@@ -71,6 +71,7 @@ typedef struct {
 
 void circe_entry_init_defaults(circe_entry_t *entry, circe_entry_mode_t mode);
 void circe_entry_set_timestamp_now(circe_entry_t *entry);
+void circe_entry_touch_updated(circe_entry_t *entry);
 bool circe_entry_to_json(const circe_entry_t *entry, char *out, size_t out_len);
 bool circe_entry_from_json(const char *json, circe_entry_t *entry);
 void circe_entry_generate_id(circe_entry_t *entry);

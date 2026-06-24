@@ -24,6 +24,7 @@ const circe_quick_preset_t circe_quick_presets[CIRCE_QUICK_PRESET_COUNT] = {
     {"Overstim", "whole body", "overstimulated", "#9B59B6"},
     {"Numb", "whole body", "numb", "#808080"},
     {"Calm green", "chest", "pressure", "#68D391"},
+    {"Soft gray", "", "", "#808080"},
 };
 
 void circe_entry_modes_apply_quick_preset(circe_entry_t *entry, int preset_index)

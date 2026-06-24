@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "circe_index.h"
@@ -17,6 +18,22 @@ const char *CIRCE_BASE_PATH = "/sdcard/circe";
 #define CIRCE_INDEX_DIR    "/sdcard/circe/index"
 
 static bool s_ready = false;
+static char s_last_error[128] = {0};
+
+void circe_storage_set_last_error(const char *msg)
+{
+    if (!msg) {
+        s_last_error[0] = '\0';
+        return;
+    }
+    strncpy(s_last_error, msg, sizeof(s_last_error) - 1);
+    s_last_error[sizeof(s_last_error) - 1] = '\0';
+}
+
+const char *circe_storage_get_last_error(void)
+{
+    return s_last_error;
+}
 
 static bool mkdir_p(const char *path)
 {
@@ -47,12 +64,15 @@ bool circe_storage_init(void)
     }
     if (!mkdir_p(CIRCE_BASE_PATH) || !mkdir_p(CIRCE_ENTRIES) || !mkdir_p(CIRCE_INDEX_DIR)) {
         ESP_LOGE(TAG, "mkdir failed");
+        circe_storage_set_last_error("Failed to create storage directories");
         return false;
     }
     if (!circe_index_open()) {
+        circe_storage_set_last_error("Failed to open index");
         return false;
     }
     s_ready = true;
+    circe_storage_set_last_error("");
     ESP_LOGI(TAG, "storage ready at %s", CIRCE_BASE_PATH);
     return true;
 }
@@ -95,6 +115,7 @@ bool circe_entry_save_json_atomic(const circe_entry_t *entry)
     FILE *f = fopen(temp_path, "w");
     if (!f) {
         ESP_LOGE(TAG, "open temp failed");
+        circe_storage_set_last_error("Failed to write entry file");
         return false;
     }
     size_t n = fwrite(json, 1, strlen(json), f);
@@ -108,8 +129,31 @@ bool circe_entry_save_json_atomic(const circe_entry_t *entry)
     if (rename(temp_path, final_path) != 0) {
         ESP_LOGE(TAG, "rename failed");
         unlink(temp_path);
+        circe_storage_set_last_error("Failed to finalize entry file");
         return false;
     }
+    return true;
+}
+
+bool circe_entry_update(circe_entry_t *entry)
+{
+    if (!s_ready || !entry || !entry->id[0]) {
+        circe_storage_set_last_error("Invalid entry for update");
+        return false;
+    }
+    entry->revision++;
+    circe_entry_touch_updated(entry);
+    entry->training_ok = false;
+    entry->private_locked = true;
+    if (!circe_entry_save_json_atomic(entry)) {
+        circe_storage_set_last_error("Update save failed");
+        return false;
+    }
+    if (!circe_entry_index_insert(entry)) {
+        circe_storage_set_last_error("Update index failed");
+        return false;
+    }
+    circe_storage_set_last_error("");
     return true;
 }
 
@@ -234,8 +278,39 @@ bool circe_storage_health_check(circe_storage_health_t *health)
         strncpy(health->last_error, "SD card not mounted", sizeof(health->last_error) - 1);
     } else if (!health->index_open) {
         strncpy(health->last_error, "Storage not initialized", sizeof(health->last_error) - 1);
+    } else if (s_last_error[0]) {
+        strncpy(health->last_error, s_last_error, sizeof(health->last_error) - 1);
     }
     return health->sd_mounted && health->index_open;
+}
+
+bool circe_storage_today_strand(circe_strand_block_t *blocks, int max_blocks, int *out_count)
+{
+    if (!blocks || max_blocks <= 0 || !out_count) {
+        return false;
+    }
+    *out_count = 0;
+    char today[CIRCE_MAX_DATE];
+    time_t now = time(NULL);
+    struct tm tm_local;
+    localtime_r(&now, &tm_local);
+    strftime(today, sizeof(today), "%Y-%m-%d", &tm_local);
+
+    circe_index_row_t rows[32];
+    int row_count = 0;
+    if (!circe_index_list_for_date(today, rows, 32, &row_count)) {
+        return false;
+    }
+    for (int i = 0; i < row_count && *out_count < max_blocks; i++) {
+        circe_entry_t entry;
+        if (!circe_entry_load(rows[i].id, &entry)) {
+            continue;
+        }
+        strncpy(blocks[*out_count].color_hex, entry.color_hex, sizeof(blocks[0].color_hex) - 1);
+        blocks[*out_count].color_hex[sizeof(blocks[0].color_hex) - 1] = '\0';
+        (*out_count)++;
+    }
+    return true;
 }
 
 bool circe_storage_get_latest_entry_id(char *id_out, size_t id_len)

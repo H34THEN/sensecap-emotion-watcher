@@ -9,7 +9,7 @@ typedef struct {
     const char *color_hex;
 } circe_quick_preset_t;
 
-#define CIRCE_QUICK_PRESET_COUNT 4
+#define CIRCE_QUICK_PRESET_COUNT 5
 
 extern const circe_quick_preset_t circe_quick_presets[CIRCE_QUICK_PRESET_COUNT];
 

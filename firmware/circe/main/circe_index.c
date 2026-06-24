@@ -200,3 +200,64 @@ bool circe_index_clear(void)
     fclose(f);
     return true;
 }
+
+bool circe_index_list_for_date(const char *local_date, circe_index_row_t *rows, int max_rows, int *out_count)
+{
+    if (!local_date || !rows || max_rows <= 0 || !out_count) {
+        return false;
+    }
+    *out_count = 0;
+    FILE *f = fopen(CIRCE_INDEX_PATH, "r");
+    if (!f) {
+        return true;
+    }
+    char line[640];
+    while (fgets(line, sizeof(line), f)) {
+        cJSON *obj = cJSON_Parse(line);
+        if (!obj) {
+            continue;
+        }
+        cJSON *jdate = cJSON_GetObjectItem(obj, "local_date");
+        cJSON *jstate = cJSON_GetObjectItem(obj, "lifecycle_state");
+        cJSON *jid = cJSON_GetObjectItem(obj, "id");
+        cJSON *jpath = cJSON_GetObjectItem(obj, "json_path");
+        cJSON *jcreated = cJSON_GetObjectItem(obj, "created_at");
+        if (!cJSON_IsString(jdate) || strcmp(jdate->valuestring, local_date) != 0) {
+            cJSON_Delete(obj);
+            continue;
+        }
+        if (cJSON_IsString(jstate) && strcmp(jstate->valuestring, "active") != 0) {
+            cJSON_Delete(obj);
+            continue;
+        }
+        if (*out_count >= max_rows || !cJSON_IsString(jid) || !cJSON_IsString(jpath)) {
+            cJSON_Delete(obj);
+            continue;
+        }
+        circe_index_row_t *row = &rows[*out_count];
+        strncpy(row->id, jid->valuestring, sizeof(row->id) - 1);
+        row->id[sizeof(row->id) - 1] = '\0';
+        strncpy(row->json_path, jpath->valuestring, sizeof(row->json_path) - 1);
+        row->json_path[sizeof(row->json_path) - 1] = '\0';
+        if (cJSON_IsString(jcreated)) {
+            strncpy(row->created_at, jcreated->valuestring, sizeof(row->created_at) - 1);
+            row->created_at[sizeof(row->created_at) - 1] = '\0';
+        } else {
+            row->created_at[0] = '\0';
+        }
+        (*out_count)++;
+        cJSON_Delete(obj);
+    }
+    fclose(f);
+
+    for (int i = 0; i < *out_count - 1; i++) {
+        for (int j = i + 1; j < *out_count; j++) {
+            if (strcmp(rows[j].created_at, rows[i].created_at) < 0) {
+                circe_index_row_t tmp = rows[i];
+                rows[i] = rows[j];
+                rows[j] = tmp;
+            }
+        }
+    }
+    return true;
+}

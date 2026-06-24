@@ -13,13 +13,20 @@ typedef enum {
     CIRCE_FLOW_REVIEW,
     CIRCE_FLOW_DELETE_CONFIRM,
     CIRCE_FLOW_QUICK_PICK,
+    CIRCE_FLOW_BODY_ADD_MORE,
+    CIRCE_FLOW_SAVE_DONE,
+    CIRCE_FLOW_STRAND,
+    CIRCE_FLOW_EDIT,
+    CIRCE_FLOW_EDIT_COLOR,
     CIRCE_FLOW_DIAGNOSTICS,
 } circe_flow_step_t;
 
 typedef struct {
     circe_flow_step_t step;
+    circe_flow_step_t return_step;
     circe_entry_t draft;
     bool storage_ready;
+    bool editing_existing;
 } circe_conversation_engine_t;
 
 void circe_conversation_init(circe_conversation_engine_t *engine);

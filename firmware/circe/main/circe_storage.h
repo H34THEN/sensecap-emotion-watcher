@@ -26,3 +26,12 @@ bool circe_storage_health_check(circe_storage_health_t *health);
 
 bool circe_storage_get_latest_entry_id(char *id_out, size_t id_len);
 bool circe_storage_run_self_test(void);
+bool circe_entry_update(circe_entry_t *entry);
+
+typedef struct {
+    char color_hex[CIRCE_MAX_COLOR];
+} circe_strand_block_t;
+
+bool circe_storage_today_strand(circe_strand_block_t *blocks, int max_blocks, int *out_count);
+void circe_storage_set_last_error(const char *msg);
+const char *circe_storage_get_last_error(void);

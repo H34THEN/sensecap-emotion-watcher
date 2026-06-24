@@ -1,24 +1,55 @@
 #include "circe_ui.h"
 
+#include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "circe_copy.h"
 #include "circe_entry_modes.h"
 #include "circe_storage.h"
-#include "esp_log.h"
 #include "lvgl.h"
 
-static const char *TAG = "circe_ui";
+#define MAX_BTN_IDS 40
+#define BTN_H         36
+#define BTN_PAD       4
 
 static circe_conversation_engine_t *s_engine = NULL;
 static lv_obj_t *s_scr = NULL;
 static lv_obj_t *s_prompt = NULL;
 static lv_obj_t *s_content = NULL;
+static lv_obj_t *s_scroll = NULL;
 static lv_obj_t *s_slider = NULL;
 static lv_obj_t *s_status = NULL;
+static lv_obj_t *s_strand_row = NULL;
+static lv_group_t *s_group = NULL;
 
 static char s_review_id[CIRCE_MAX_ID];
+static char s_btn_ids[MAX_BTN_IDS][48];
+static int s_btn_id_next = 0;
+
+static void btn_event_cb(lv_event_t *e);
+
+static uint32_t parse_hex_color(const char *hex)
+{
+    if (!hex || hex[0] != '#') {
+        return 0x808080;
+    }
+    return (uint32_t)strtoul(hex + 1, NULL, 16);
+}
+
+static const char *alloc_btn_id(const char *fmt, ...)
+{
+    if (s_btn_id_next >= MAX_BTN_IDS) {
+        return "overflow";
+    }
+    char *buf = s_btn_ids[s_btn_id_next++];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(s_btn_ids[0]), fmt, args);
+    va_end(args);
+    return buf;
+}
 
 static void show_message(circe_pattern_key_t key)
 {
@@ -29,19 +60,86 @@ static void show_message(circe_pattern_key_t key)
 
 static void clear_content(void)
 {
+    s_btn_id_next = 0;
+    s_slider = NULL;
+    s_scroll = NULL;
     if (s_content) {
         lv_obj_clean(s_content);
     }
+    if (s_group) {
+        lv_group_remove_all_objs(s_group);
+    }
 }
 
-static void go_step(circe_flow_step_t step)
+static void attach_encoder_indev(void)
 {
-    if (!s_engine) {
+    if (!s_group) {
         return;
     }
-    s_engine->step = step;
-    circe_ui_show_step(step);
+    lv_indev_t *cur_drv = NULL;
+    for (;;) {
+        cur_drv = lv_indev_get_next(cur_drv);
+        if (!cur_drv) {
+            break;
+        }
+        if (cur_drv->driver->type == LV_INDEV_TYPE_ENCODER) {
+            lv_indev_set_group(cur_drv, s_group);
+        }
+    }
 }
+
+static void setup_encoder_group(void)
+{
+    if (!s_group) {
+        s_group = lv_group_get_default();
+        if (!s_group) {
+            s_group = lv_group_create();
+            lv_group_set_default(s_group);
+        }
+    }
+    attach_encoder_indev();
+}
+
+static lv_obj_t *create_scroll_panel(void)
+{
+    s_scroll = lv_obj_create(s_content);
+    lv_obj_set_size(s_scroll, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_flex_flow(s_scroll, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(s_scroll, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_add_flag(s_scroll, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scroll_dir(s_scroll, LV_DIR_VER);
+    lv_obj_set_style_pad_row(s_scroll, BTN_PAD, 0);
+    lv_obj_set_style_pad_all(s_scroll, BTN_PAD, 0);
+    lv_obj_set_style_border_width(s_scroll, 0, 0);
+    return s_scroll;
+}
+
+static lv_obj_t *btn_parent(void)
+{
+    return s_scroll ? s_scroll : s_content;
+}
+
+static lv_obj_t *add_btn(const char *label, const char *id)
+{
+    lv_obj_t *btn = lv_btn_create(btn_parent());
+    lv_obj_set_width(btn, LV_PCT(92));
+    lv_obj_set_height(btn, BTN_H);
+    lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_CLICKED, (void *)id);
+    lv_obj_t *lbl = lv_label_create(btn);
+    lv_label_set_text(lbl, label);
+    lv_obj_center(lbl);
+    if (s_group) {
+        lv_group_add_obj(s_group, btn);
+    }
+    return btn;
+}
+
+static void add_back_btn(circe_flow_step_t target)
+{
+    add_btn(circe_copy_get(CIRCE_PATTERN_NAV_BACK), alloc_btn_id("nav:%d", (int)target));
+}
+
+static void go_step(circe_flow_step_t step);
 
 static bool persist_entry(void)
 {
@@ -51,16 +149,52 @@ static bool persist_entry(void)
     s_engine->draft.training_ok = false;
     s_engine->draft.private_locked = true;
     strncpy(s_engine->draft.emotion, CIRCE_EMOTION_UNKNOWN, sizeof(s_engine->draft.emotion) - 1);
-    if (!circe_entry_save_json_atomic(&s_engine->draft)) {
-        show_message(CIRCE_PATTERN_ERROR_SAVE_FAILED);
-        return false;
-    }
-    if (!circe_entry_index_insert(&s_engine->draft)) {
-        show_message(CIRCE_PATTERN_ERROR_SAVE_FAILED);
-        return false;
+    s_engine->draft.emotion[sizeof(s_engine->draft.emotion) - 1] = '\0';
+    if (s_engine->editing_existing) {
+        if (!circe_entry_update(&s_engine->draft)) {
+            show_message(CIRCE_PATTERN_ERROR_SAVE_FAILED);
+            return false;
+        }
+    } else {
+        if (!circe_entry_save_json_atomic(&s_engine->draft)) {
+            show_message(CIRCE_PATTERN_ERROR_SAVE_FAILED);
+            return false;
+        }
+        if (!circe_entry_index_insert(&s_engine->draft)) {
+            show_message(CIRCE_PATTERN_ERROR_SAVE_FAILED);
+            return false;
+        }
     }
     strncpy(s_review_id, s_engine->draft.id, sizeof(s_review_id) - 1);
+    s_review_id[sizeof(s_review_id) - 1] = '\0';
+    s_engine->editing_existing = false;
     return true;
+}
+
+static void refresh_strand_row(void)
+{
+    if (!s_strand_row) {
+        return;
+    }
+    lv_obj_clean(s_strand_row);
+    circe_strand_block_t blocks[16];
+    int count = 0;
+    if (!circe_storage_today_strand(blocks, 16, &count) || count == 0) {
+        lv_obj_t *void_block = lv_obj_create(s_strand_row);
+        lv_obj_set_size(void_block, 18, 18);
+        lv_obj_set_style_bg_color(void_block, lv_color_hex(0x2D3748), 0);
+        lv_obj_set_style_border_width(void_block, 1, 0);
+        lv_obj_set_style_border_color(void_block, lv_color_hex(0x4A5568), 0);
+        lv_obj_set_style_radius(void_block, 3, 0);
+        return;
+    }
+    for (int i = 0; i < count; i++) {
+        lv_obj_t *block = lv_obj_create(s_strand_row);
+        lv_obj_set_size(block, 18, 18);
+        lv_obj_set_style_bg_color(block, lv_color_hex(parse_hex_color(blocks[i].color_hex)), 0);
+        lv_obj_set_style_border_width(block, 0, 0);
+        lv_obj_set_style_radius(block, 3, 0);
+    }
 }
 
 static void btn_event_cb(lv_event_t *e)
@@ -85,20 +219,24 @@ static void btn_event_cb(lv_event_t *e)
         }
     } else if (strcmp(id, "more") == 0) {
         go_step(CIRCE_FLOW_DIAGNOSTICS);
+    } else if (strcmp(id, "strand") == 0) {
+        go_step(CIRCE_FLOW_STRAND);
     } else if (strcmp(id, "save") == 0) {
         if (persist_entry()) {
-            show_message(CIRCE_PATTERN_SAVE_CONFIRMED);
-            if (s_status) {
-                lv_label_set_text(s_status, circe_copy_get(CIRCE_PATTERN_PRIVACY_DEFAULT_NOTICE));
-            }
-            go_step(CIRCE_FLOW_HOME);
+            go_step(CIRCE_FLOW_SAVE_DONE);
         }
     } else if (strcmp(id, "skip_color") == 0) {
-        go_step(CIRCE_FLOW_SAVE_CONFIRM);
+        if (persist_entry()) {
+            go_step(CIRCE_FLOW_SAVE_DONE);
+        }
     } else if (strcmp(id, "next_intensity") == 0) {
         if (s_slider) {
             s_engine->draft.intensity = lv_slider_get_value(s_slider);
         }
+        go_step(CIRCE_FLOW_BODY_ADD_MORE);
+    } else if (strcmp(id, "add_sensation") == 0) {
+        go_step(CIRCE_FLOW_BODY_AREA);
+    } else if (strcmp(id, "continue_save") == 0) {
         go_step(CIRCE_FLOW_COLOR_OPTIONAL);
     } else if (strcmp(id, "delete") == 0) {
         go_step(CIRCE_FLOW_DELETE_CONFIRM);
@@ -108,14 +246,39 @@ static void btn_event_cb(lv_event_t *e)
             show_message(CIRCE_PATTERN_DELETE_DONE);
             go_step(CIRCE_FLOW_HOME);
         }
+    } else if (strcmp(id, "edit") == 0) {
+        go_step(CIRCE_FLOW_EDIT);
+    } else if (strcmp(id, "edit_color") == 0) {
+        s_engine->editing_existing = true;
+        go_step(CIRCE_FLOW_EDIT_COLOR);
+    } else if (strcmp(id, "edit_add_sensation") == 0) {
+        s_engine->editing_existing = true;
+        go_step(CIRCE_FLOW_BODY_AREA);
     } else if (strcmp(id, "home") == 0) {
+        s_engine->editing_existing = false;
         go_step(CIRCE_FLOW_HOME);
     } else if (strcmp(id, "rebuild") == 0) {
-        circe_ui_run_rebuild_test();
+        int count = 0;
+        circe_rebuild_index_from_json(&count);
+        if (s_status) {
+            char buf[64];
+            snprintf(buf, sizeof(buf), "Rebuild: %d entries", count);
+            lv_label_set_text(s_status, buf);
+        }
+        go_step(CIRCE_FLOW_DIAGNOSTICS);
+    } else if (strcmp(id, "selftest") == 0) {
+        bool ok = circe_storage_run_self_test();
+        if (s_status) {
+            lv_label_set_text(s_status, ok ? "Self-test passed" : "Self-test failed");
+        }
+        go_step(CIRCE_FLOW_DIAGNOSTICS);
+    } else if (strncmp(id, "nav:", 4) == 0) {
+        go_step((circe_flow_step_t)atoi(id + 4));
     } else if (strncmp(id, "area:", 5) == 0) {
         if (s_engine->draft.body_area_count < CIRCE_MAX_BODY_AREAS) {
             int idx = s_engine->draft.body_area_count;
             strncpy(s_engine->draft.body_areas[idx], id + 5, sizeof(s_engine->draft.body_areas[idx]) - 1);
+            s_engine->draft.body_areas[idx][sizeof(s_engine->draft.body_areas[idx]) - 1] = '\0';
             s_engine->draft.body_area_count++;
         }
         go_step(CIRCE_FLOW_BODY_SENSATION);
@@ -123,12 +286,28 @@ static void btn_event_cb(lv_event_t *e)
         if (s_engine->draft.body_sensation_count < CIRCE_MAX_BODY_SENSATIONS) {
             int idx = s_engine->draft.body_sensation_count;
             strncpy(s_engine->draft.body_sensations[idx], id + 4, sizeof(s_engine->draft.body_sensations[idx]) - 1);
+            s_engine->draft.body_sensations[idx][sizeof(s_engine->draft.body_sensations[idx]) - 1] = '\0';
             s_engine->draft.body_sensation_count++;
         }
-        go_step(CIRCE_FLOW_INTENSITY);
+        if (s_engine->editing_existing) {
+            if (persist_entry()) {
+                show_message(CIRCE_PATTERN_EDIT_SAVED);
+                go_step(CIRCE_FLOW_REVIEW);
+            }
+        } else {
+            go_step(CIRCE_FLOW_INTENSITY);
+        }
     } else if (strncmp(id, "color:", 6) == 0) {
         strncpy(s_engine->draft.color_hex, id + 6, sizeof(s_engine->draft.color_hex) - 1);
-        go_step(CIRCE_FLOW_SAVE_CONFIRM);
+        s_engine->draft.color_hex[sizeof(s_engine->draft.color_hex) - 1] = '\0';
+        if (s_engine->editing_existing) {
+            if (persist_entry()) {
+                show_message(CIRCE_PATTERN_EDIT_SAVED);
+                go_step(CIRCE_FLOW_REVIEW);
+            }
+        } else if (persist_entry()) {
+            go_step(CIRCE_FLOW_SAVE_DONE);
+        }
     } else if (strncmp(id, "quick:", 6) == 0) {
         int preset = id[6] - '0';
         circe_entry_modes_apply_quick_preset(&s_engine->draft, preset);
@@ -137,20 +316,18 @@ static void btn_event_cb(lv_event_t *e)
             if (s_status) {
                 lv_label_set_text(s_status, circe_copy_get(CIRCE_PATTERN_QUICK_ADD_LATER));
             }
-            go_step(CIRCE_FLOW_HOME);
+            go_step(CIRCE_FLOW_SAVE_DONE);
         }
     }
 }
 
-static lv_obj_t *add_btn(const char *label, const char *id)
+static void go_step(circe_flow_step_t step)
 {
-    lv_obj_t *btn = lv_btn_create(s_content);
-    lv_obj_set_width(btn, LV_PCT(90));
-    lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_CLICKED, (void *)id);
-    lv_obj_t *lbl = lv_label_create(btn);
-    lv_label_set_text(lbl, label);
-    lv_obj_center(lbl);
-    return btn;
+    if (!s_engine) {
+        return;
+    }
+    s_engine->step = step;
+    circe_ui_show_step(step);
 }
 
 void circe_ui_set_engine(circe_conversation_engine_t *engine)
@@ -160,20 +337,32 @@ void circe_ui_set_engine(circe_conversation_engine_t *engine)
 
 void circe_ui_init(void)
 {
+    setup_encoder_group();
+    refresh_strand_row();
+
     s_scr = lv_obj_create(NULL);
     lv_scr_load(s_scr);
+
+    s_strand_row = lv_obj_create(s_scr);
+    lv_obj_set_size(s_strand_row, LV_PCT(95), 24);
+    lv_obj_align(s_strand_row, LV_ALIGN_TOP_MID, 0, 4);
+    lv_obj_set_flex_flow(s_strand_row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(s_strand_row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(s_strand_row, 4, 0);
+    lv_obj_set_style_bg_opa(s_strand_row, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(s_strand_row, 0, 0);
+    lv_obj_clear_flag(s_strand_row, LV_OBJ_FLAG_SCROLLABLE);
 
     s_prompt = lv_label_create(s_scr);
     lv_obj_set_width(s_prompt, LV_PCT(95));
     lv_label_set_long_mode(s_prompt, LV_LABEL_LONG_WRAP);
-    lv_obj_align(s_prompt, LV_ALIGN_TOP_MID, 0, 8);
+    lv_obj_align(s_prompt, LV_ALIGN_TOP_MID, 0, 32);
 
     s_content = lv_obj_create(s_scr);
-    lv_obj_set_size(s_content, LV_PCT(100), 280);
-    lv_obj_align(s_content, LV_ALIGN_BOTTOM_MID, 0, -40);
-    lv_obj_set_flex_flow(s_content, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(s_content, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(s_content, 6, 0);
+    lv_obj_set_size(s_content, LV_PCT(100), 250);
+    lv_obj_align(s_content, LV_ALIGN_BOTTOM_MID, 0, -44);
+    lv_obj_set_style_pad_all(s_content, BTN_PAD, 0);
+    lv_obj_set_style_border_width(s_content, 0, 0);
 
     s_status = lv_label_create(s_scr);
     lv_obj_set_width(s_status, LV_PCT(95));
@@ -187,11 +376,12 @@ void circe_ui_show_step(circe_flow_step_t step)
         return;
     }
     clear_content();
-    s_slider = NULL;
+    setup_encoder_group();
     show_message(circe_conversation_prompt_for_step(s_engine));
 
     switch (step) {
     case CIRCE_FLOW_HOME:
+        refresh_strand_row();
         show_message(CIRCE_PATTERN_GREET_FIRST_TODAY);
         add_btn(circe_copy_get(CIRCE_PATTERN_HOME_BODY), "body");
         add_btn(circe_copy_get(CIRCE_PATTERN_HOME_QUICK), "quick");
@@ -203,54 +393,69 @@ void circe_ui_show_step(circe_flow_step_t step)
         break;
 
     case CIRCE_FLOW_BODY_AREA:
+        create_scroll_panel();
         for (int i = 0; i < circe_body_area_count; i++) {
-            static char ids[20][32];
-            snprintf(ids[i], sizeof(ids[i]), "area:%s", circe_body_areas[i]);
-            add_btn(circe_body_areas[i], ids[i]);
+            add_btn(circe_body_areas[i], alloc_btn_id("area:%s", circe_body_areas[i]));
         }
+        add_back_btn(s_engine->editing_existing ? CIRCE_FLOW_EDIT : CIRCE_FLOW_HOME);
         break;
 
     case CIRCE_FLOW_BODY_SENSATION:
+        create_scroll_panel();
         for (int i = 0; i < circe_body_sensation_count; i++) {
-            static char ids[24][40];
-            snprintf(ids[i], sizeof(ids[i]), "sen:%s", circe_body_sensations[i]);
-            add_btn(circe_body_sensations[i], ids[i]);
+            add_btn(circe_body_sensations[i], alloc_btn_id("sen:%s", circe_body_sensations[i]));
         }
+        add_back_btn(CIRCE_FLOW_BODY_AREA);
         break;
 
-    case CIRCE_FLOW_INTENSITY: {
+    case CIRCE_FLOW_INTENSITY:
         s_slider = lv_slider_create(s_content);
         lv_slider_set_range(s_slider, 1, 10);
         lv_slider_set_value(s_slider, s_engine->draft.intensity, LV_ANIM_OFF);
-        lv_obj_set_width(s_slider, LV_PCT(80));
+        lv_obj_set_width(s_slider, LV_PCT(85));
+        if (s_group) {
+            lv_group_add_obj(s_group, s_slider);
+        }
         add_btn("Continue", "next_intensity");
+        add_back_btn(CIRCE_FLOW_BODY_SENSATION);
         break;
-    }
+
+    case CIRCE_FLOW_BODY_ADD_MORE:
+        add_btn("Add another sensation", "add_sensation");
+        add_btn(circe_copy_get(CIRCE_PATTERN_BODY_CONTINUE), "continue_save");
+        add_back_btn(CIRCE_FLOW_INTENSITY);
+        break;
 
     case CIRCE_FLOW_COLOR_OPTIONAL:
+        create_scroll_panel();
         for (int i = 0; i < circe_quick_color_count; i++) {
-            static char color_ids[4][24];
-            snprintf(color_ids[i], sizeof(color_ids[i]), "color:%s", circe_quick_colors[i]);
-            add_btn(circe_quick_colors[i], color_ids[i]);
+            add_btn(circe_quick_colors[i], alloc_btn_id("color:%s", circe_quick_colors[i]));
         }
         add_btn("Skip color", "skip_color");
+        add_back_btn(CIRCE_FLOW_BODY_ADD_MORE);
         break;
 
-    case CIRCE_FLOW_SAVE_CONFIRM:
-        show_message(CIRCE_PATTERN_PRIVACY_DEFAULT_NOTICE);
-        if (persist_entry()) {
-            show_message(CIRCE_PATTERN_SAVE_CONFIRMED);
-            go_step(CIRCE_FLOW_HOME);
+    case CIRCE_FLOW_SAVE_DONE:
+        show_message(CIRCE_PATTERN_SAVE_CONFIRMED);
+        if (s_status) {
+            lv_label_set_text(s_status, circe_copy_get(CIRCE_PATTERN_PRIVACY_DEFAULT_NOTICE));
         }
+        add_btn("Home", "home");
+        refresh_strand_row();
         break;
 
     case CIRCE_FLOW_REVIEW: {
-        char line[256];
-        snprintf(line, sizeof(line), "Mode: %s\nEmotion: %s\nAreas: %d  Sensations: %d\nColor: %s  Intensity: %d\nPrivate: yes",
+        char line[320];
+        snprintf(line, sizeof(line),
+                 "Mode: %s\nEmotion: %s\nAreas: %d  Sensations: %d\nColor: %s  Intensity: %d\nRev: %d  Private: yes",
                  circe_entry_mode_str(s_engine->draft.entry_mode), s_engine->draft.emotion, s_engine->draft.body_area_count,
-                 s_engine->draft.body_sensation_count, s_engine->draft.color_hex, s_engine->draft.intensity);
+                 s_engine->draft.body_sensation_count, s_engine->draft.color_hex, s_engine->draft.intensity,
+                 s_engine->draft.revision);
         lv_obj_t *lbl = lv_label_create(s_content);
+        lv_label_set_long_mode(lbl, LV_LABEL_LONG_WRAP);
+        lv_obj_set_width(lbl, LV_PCT(92));
         lv_label_set_text(lbl, line);
+        add_btn("Edit", "edit");
         add_btn("Delete", "delete");
         add_btn("Home", "home");
         break;
@@ -258,27 +463,75 @@ void circe_ui_show_step(circe_flow_step_t step)
 
     case CIRCE_FLOW_DELETE_CONFIRM:
         add_btn("Yes, delete", "delete_yes");
-        add_btn("Cancel", "home");
+        add_btn(circe_copy_get(CIRCE_PATTERN_NAV_CANCEL), alloc_btn_id("nav:%d", CIRCE_FLOW_REVIEW));
+        break;
+
+    case CIRCE_FLOW_EDIT:
+        add_btn(circe_copy_get(CIRCE_PATTERN_EDIT_COLOR), "edit_color");
+        add_btn(circe_copy_get(CIRCE_PATTERN_EDIT_ADD_SENSATION), "edit_add_sensation");
+        add_back_btn(CIRCE_FLOW_REVIEW);
+        break;
+
+    case CIRCE_FLOW_EDIT_COLOR:
+        create_scroll_panel();
+        for (int i = 0; i < circe_quick_color_count; i++) {
+            add_btn(circe_quick_colors[i], alloc_btn_id("color:%s", circe_quick_colors[i]));
+        }
+        add_back_btn(CIRCE_FLOW_EDIT);
         break;
 
     case CIRCE_FLOW_QUICK_PICK:
+        create_scroll_panel();
         for (int i = 0; i < CIRCE_QUICK_PRESET_COUNT; i++) {
-            static char ids[4][16];
-            snprintf(ids[i], sizeof(ids[i]), "quick:%d", i);
-            add_btn(circe_quick_presets[i].label, ids[i]);
+            add_btn(circe_quick_presets[i].label, alloc_btn_id("quick:%d", i));
         }
+        add_back_btn(CIRCE_FLOW_HOME);
         break;
+
+    case CIRCE_FLOW_STRAND: {
+        refresh_strand_row();
+        circe_strand_block_t blocks[16];
+        int count = 0;
+        circe_storage_today_strand(blocks, 16, &count);
+        char line[96];
+        snprintf(line, sizeof(line), "%d entries today", count);
+        lv_obj_t *lbl = lv_label_create(s_content);
+        lv_label_set_text(lbl, line);
+        lv_obj_t *row = lv_obj_create(s_content);
+        lv_obj_set_size(row, LV_PCT(95), 28);
+        lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_style_pad_column(row, 4, 0);
+        for (int i = 0; i < count; i++) {
+            lv_obj_t *block = lv_obj_create(row);
+            lv_obj_set_size(block, 22, 22);
+            lv_obj_set_style_bg_color(block, lv_color_hex(parse_hex_color(blocks[i].color_hex)), 0);
+            lv_obj_set_style_radius(block, 3, 0);
+        }
+        if (count == 0) {
+            lv_obj_t *block = lv_obj_create(row);
+            lv_obj_set_size(block, 22, 22);
+            lv_obj_set_style_bg_color(block, lv_color_hex(0x2D3748), 0);
+        }
+        add_btn("Home", "home");
+        break;
+    }
 
     case CIRCE_FLOW_DIAGNOSTICS: {
         circe_storage_health_t h;
         circe_storage_health_check(&h);
-        char line[160];
-        snprintf(line, sizeof(line), "SD: %s  Index: %s\nEntries: %d\n%s", h.sd_mounted ? "ok" : "no", h.index_open ? "ok" : "no",
-                 h.entry_count, h.last_error);
+        char line[280];
+        snprintf(line, sizeof(line),
+                 "SD: %s  Index: %s\nEntries: %d\nLast error: %s\n\n%s",
+                 h.sd_mounted ? "yes" : "no", h.index_open ? "ok" : "no", h.entry_count,
+                 h.last_error[0] ? h.last_error : "none", circe_copy_get(CIRCE_PATTERN_PRIVACY_STANDALONE));
         lv_obj_t *lbl = lv_label_create(s_content);
+        lv_label_set_long_mode(lbl, LV_LABEL_LONG_WRAP);
+        lv_obj_set_width(lbl, LV_PCT(92));
         lv_label_set_text(lbl, line);
         add_btn("Rebuild index", "rebuild");
-        add_btn("Run self test", "rebuild");
+        add_btn("Run self test", "selftest");
+        add_btn("Today strand", "strand");
         add_btn("Home", "home");
         break;
     }
@@ -286,6 +539,8 @@ void circe_ui_show_step(circe_flow_step_t step)
     default:
         break;
     }
+
+    attach_encoder_indev();
 }
 
 bool circe_ui_save_draft(void)
@@ -305,7 +560,6 @@ void circe_ui_run_rebuild_test(void)
 {
     int count = 0;
     circe_rebuild_index_from_json(&count);
-    circe_storage_run_self_test();
     if (s_status) {
         char buf[64];
         snprintf(buf, sizeof(buf), "Rebuild: %d entries", count);
