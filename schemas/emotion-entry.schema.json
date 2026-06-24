@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/circe/emotion-entry.schema.json",
+  "title": "Circe EmotionEntry",
+  "description": "Planning schema for CIRCE emotional reflection entries. Not yet enforced in firmware.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "created_at",
+    "device_id",
+    "completion_status",
+    "flow_path",
+    "emotion_skipped",
+    "color_hex",
+    "color_source",
+    "intensity",
+    "body_areas",
+    "body_sensations",
+    "context_tags",
+    "summary_text",
+    "training_ok",
+    "private_locked"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "id": { "type": "string", "format": "uuid" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "device_id": { "type": "string", "minLength": 1 },
+    "completion_status": { "type": "string", "enum": ["complete", "partial"] },
+    "flow_path": { "type": "string", "enum": ["standard", "body_first"] },
+    "emotion": { "type": ["string", "null"] },
+    "emotion_skipped": { "type": "boolean" },
+    "color_hex": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+    "color_source": { "type": "string", "enum": ["picker", "hex", "favorite", "default"] },
+    "intensity": { "type": "integer", "minimum": 1, "maximum": 10 },
+    "body_areas": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "head", "eyes", "jaw", "throat", "chest", "stomach",
+          "shoulders", "back", "arms", "hands", "hips", "legs",
+          "feet", "skin", "whole_body"
+        ]
+      }
+    },
+    "body_sensations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "tight", "pressure", "heavy", "shaky", "buzzing", "tingling",
+          "hot", "cold", "numb", "floaty", "nauseous", "racing_heart",
+          "shallow_breathing", "skin_crawling", "overstimulated",
+          "shutdown_feeling", "meltdown_warning", "pain_spike"
+        ]
+      }
+    },
+    "sleep_rating": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 },
+    "energy_rating": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 },
+    "stress_rating": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 },
+    "context_tags": { "type": "array", "items": { "type": "string" } },
+    "summary_text": { "type": "string", "maxLength": 280 },
+    "photo_path": { "type": ["string", "null"] },
+    "photo_hash": { "type": ["string", "null"] },
+    "training_ok": { "type": "boolean", "default": false },
+    "private_locked": { "type": "boolean", "default": true },
+    "assistant_transcript": { "type": "object" },
+    "calibration_snapshot_id": { "type": "string" }
+  },
+  "additionalProperties": false
+}

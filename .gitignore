@@ -1,0 +1,45 @@
+# ESP-IDF / firmware build artifacts
+build/
+sdkconfig
+sdkconfig.old
+dependencies.lock
+managed_components/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets and local config
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+secrets/
+
+# Local data (Circe entries stay on device; dev exports)
+data/
+exports/
+*.db
+*.sqlite
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node (future Magic Mirror tooling)
+node_modules/
+
+# Logs and temp
+*.log
+tmp/
+.cache/
