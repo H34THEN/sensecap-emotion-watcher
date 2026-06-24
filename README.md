@@ -1,12 +1,14 @@
 # CIRCE — SenseCAP Watcher Emotional Reflection Companion
 
-CIRCE is a personal emotional reflection companion for the [Seeed Studio SenseCAP Watcher](https://wiki.seeedstudio.com/watcher_hardware_overview/). It helps the user explore emotions through body sensations, color association, journaling, and pattern reflection over time.
+CIRCE is a **standalone** personal emotional reflection companion for the [Seeed Studio SenseCAP Watcher](https://wiki.seeedstudio.com/watcher_hardware_overview/). It helps the user explore emotions through body sensations, color association, and private local journaling.
+
+Optional future plugins (Magic Mirror, Hades Watch, GPU training, NAS backup) are **not required** for core use. See [docs/architecture/STANDALONE_FIRST_PRINCIPLE.md](docs/architecture/STANDALONE_FIRST_PRINCIPLE.md).
 
 **CIRCE is not a therapist, diagnosis system, or mental health professional.**
 
 ## Project status
 
-**Phase 1 (current):** Research, architecture, and documentation. No firmware implementation yet.
+**Phase 2 (current):** Standalone firmware MVP at [firmware/circe/](firmware/circe/) — body/quick entry, local storage. Hardware validation pending ESP-IDF environment setup.
 
 ## Design principles
 
@@ -22,14 +24,18 @@ docs/
   architecture/     System design and module map
   hardware/         SenseCAP Watcher hardware facts (official sources)
   sdk/              Firmware SDK and ESP-IDF research notes
-  personality/      Circe assistant tone and boundaries
+  personality/      Circe assistant tone and boundaries (summary)
+  conversation/     Circe conversational architecture (source of truth)
+  memory/           Long-term memory, storage, strand, export design
   design/           User flow, body sensations, colors, privacy
   schema/           Entry data model planning
   modules/          Per-module specifications
   integration/      Magic Mirror and Hades Watch future plans
   ml/               Training dataset design (not implemented)
   roadmap/          Phase 2+ implementation plan
-firmware/           Future Watcher firmware (placeholder)
+firmware/
+  circe/              Phase 2 standalone MVP (ESP-IDF)
+  README.md
 schemas/            JSON schema drafts
 ```
 

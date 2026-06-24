@@ -1,5 +1,10 @@
-# ESP-IDF / firmware build artifacts
-build/
+# Build artifacts
+firmware/circe/build/
+firmware/circe/managed_components/
+firmware/circe/dependencies.lock
+firmware/circe/sdkconfig
+firmware/circe/sdkconfig.old
+
 sdkconfig
 sdkconfig.old
 dependencies.lock
