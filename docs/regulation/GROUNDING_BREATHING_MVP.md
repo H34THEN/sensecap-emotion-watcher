@@ -4,6 +4,8 @@
 
 Offline regulation tools for in-the-moment body support. Not medical intervention — grounding, breathing pace, and body anchor language only.
 
+Optional **voice cues** (Settings → SOFT): gentle tones on session start, breathing phase changes, and completion. Sensory reset stays silent. See `docs/voice/VOICE_PERSONALITY_MVP.md`.
+
 ---
 
 ## Home entry

@@ -48,6 +48,7 @@ typedef enum {
     CIRCE_FLOW_PHOTO_CONSENT,
     CIRCE_FLOW_PHOTO_CAPTURE,
     CIRCE_FLOW_PHOTO_RESULT,
+    CIRCE_FLOW_VOICE_CUES,
 } circe_flow_step_t;
 
 typedef struct {

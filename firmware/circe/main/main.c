@@ -9,6 +9,7 @@
 #include "circe_fonts.h"
 #include "circe_time.h"
 #include "circe_ui.h"
+#include "circe_voice.h"
 
 static const char *TAG = "circe_main";
 
@@ -61,6 +62,7 @@ void app_main(void)
     s_engine.storage_ready = circe_storage_init();
     circe_fonts_init();
     circe_theme_init();
+    circe_voice_init();
     if (s_engine.storage_ready) {
         circe_strand_cache_init();
     }

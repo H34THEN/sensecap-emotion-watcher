@@ -7,7 +7,7 @@
 
 ## Purpose
 
-Expand offline regulation tools beyond breathing and body anchor. Visual-first, no voice/camera/cloud, safe to stop anytime, worker save only on user confirm.
+Expand offline regulation tools beyond breathing and body anchor. Visual-first, optional soft local tones when Voice Cues SOFT is enabled (sensory reset silent), no camera/cloud, safe to stop anytime, worker save only on user confirm.
 
 ---
 

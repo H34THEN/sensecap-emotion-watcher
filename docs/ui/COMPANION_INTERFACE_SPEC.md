@@ -183,6 +183,10 @@ REVIEW → category menu (TODAY / YESTERDAY / THIS WEEK / ALL ENTRIES / **PATTER
 
 Dedicated **PATTERNS** screen: up to 3 observations from last 16 entries (7-day window). Encoder rotates patterns; optional REGULATE when high-intensity pattern detected.
 
+### Voice cues (MVP)
+
+Settings → **VOICE CUES**: OFF (default) or SOFT. Optional local tones on save and regulation — no microphone, no speech. See `docs/voice/VOICE_PERSONALITY_MVP.md`.
+
 ---
 
 ## Theme integration

@@ -6,6 +6,7 @@
 #include "circe_copy.h"
 #include "circe_fonts.h"
 #include "circe_theme.h"
+#include "circe_voice.h"
 #include "esp_log.h"
 
 #define REG_DOUBLE_PRESS_MS 450
@@ -189,6 +190,9 @@ static void finish_breathing(bool completed)
         s_reg.result->rounds_completed = 0;
     }
     emit_action(completed ? CIRCE_REG_ACT_COMPLETE : CIRCE_REG_ACT_END);
+    if (completed) {
+        circe_voice_play_event(CIRCE_VOICE_EVENT_SESSION_COMPLETE);
+    }
 }
 
 static void advance_breath_phase(void)
@@ -209,6 +213,19 @@ static void advance_breath_phase(void)
         s_reg.count = phase_start_count(REG_PHASE_INHALE);
     }
     update_breath_labels();
+    switch (s_reg.phase) {
+    case REG_PHASE_INHALE:
+        circe_voice_play_event(CIRCE_VOICE_EVENT_BREATHE_INHALE);
+        break;
+    case REG_PHASE_HOLD:
+        circe_voice_play_event(CIRCE_VOICE_EVENT_BREATHE_HOLD);
+        break;
+    case REG_PHASE_EXHALE:
+        circe_voice_play_event(CIRCE_VOICE_EVENT_BREATHE_EXHALE);
+        break;
+    default:
+        break;
+    }
 }
 
 static void breath_timer_cb(lv_timer_t *timer)
@@ -244,6 +261,9 @@ static void finish_steps_session(const char *type, bool completed)
         s_reg.result->steps_completed = 0;
     }
     emit_action(completed ? CIRCE_REG_ACT_COMPLETE : CIRCE_REG_ACT_END);
+    if (completed) {
+        circe_voice_play_event(CIRCE_VOICE_EVENT_SESSION_COMPLETE);
+    }
 }
 
 static void finish_body_anchor(bool completed)
@@ -386,6 +406,9 @@ static void finish_bilateral(bool completed)
     s_reg.result->rounds_completed = s_reg.bilateral_cycles;
     s_reg.result->pace_ms = s_reg.pace_ms;
     emit_action(completed ? CIRCE_REG_ACT_COMPLETE : CIRCE_REG_ACT_END);
+    if (completed) {
+        circe_voice_play_event(CIRCE_VOICE_EVENT_SESSION_COMPLETE);
+    }
 }
 
 static void update_bilateral_visual(void)
@@ -633,6 +656,8 @@ void circe_regulation_breathing_start(circe_regulation_result_t *result, lv_obj_
 
     build_breath_ui(parent);
     s_reg.timer = lv_timer_create(breath_timer_cb, REG_TICK_MS, NULL);
+    circe_voice_play_event(CIRCE_VOICE_EVENT_REGULATION_START);
+    circe_voice_play_event(CIRCE_VOICE_EVENT_BREATHE_INHALE);
     ESP_LOGI(TAG, "breathing started: %d lvgl objects in module", 5);
 }
 
@@ -655,6 +680,7 @@ void circe_regulation_body_anchor_start(circe_regulation_result_t *result, lv_ob
 
     build_anchor_ui(parent);
     s_reg.timer = lv_timer_create(step_timer_cb, REG_TICK_MS, NULL);
+    circe_voice_play_event(CIRCE_VOICE_EVENT_REGULATION_START);
     ESP_LOGI(TAG, "body anchor started");
 }
 
@@ -678,6 +704,7 @@ void circe_regulation_54321_start(circe_regulation_result_t *result, lv_obj_t *p
 
     build_step_ui(parent, false);
     s_reg.timer = lv_timer_create(step_timer_cb, REG_TICK_MS, NULL);
+    circe_voice_play_event(CIRCE_VOICE_EVENT_REGULATION_START);
     ESP_LOGI(TAG, "54321 started");
 }
 
@@ -723,5 +750,6 @@ void circe_regulation_bilateral_start(circe_regulation_result_t *result, lv_obj_
 
     build_bilateral_ui(parent);
     s_reg.timer = lv_timer_create(bilateral_timer_cb, (uint32_t)s_reg.pace_ms, NULL);
+    circe_voice_play_event(CIRCE_VOICE_EVENT_REGULATION_START);
     ESP_LOGI(TAG, "bilateral tap started");
 }

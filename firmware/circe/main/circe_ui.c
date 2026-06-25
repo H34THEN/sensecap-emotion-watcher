@@ -19,6 +19,7 @@
 #include "circe_memory_browser.h"
 #include "circe_patterns.h"
 #include "circe_photo.h"
+#include "circe_voice.h"
 #include "circe_reflection.h"
 #include "circe_regulation.h"
 #include "circe_timeline.h"
@@ -655,6 +656,7 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
             }
             if (c->success_step == CIRCE_FLOW_REFLECTION) {
                 circe_reflection_generate(&c->entry, &s_reflection);
+                circe_voice_play_event(CIRCE_VOICE_EVENT_SAVE_OK);
                 go_step(CIRCE_FLOW_REFLECTION);
             } else {
                 go_step(c->success_step);
@@ -1030,6 +1032,16 @@ static void btn_event_cb(lv_event_t *e)
         go_step(CIRCE_FLOW_TIME);
     } else if (strcmp(id, "more_storage") == 0) {
         go_step(CIRCE_FLOW_DIAGNOSTICS);
+    } else if (strcmp(id, "more_voice") == 0) {
+        go_step(CIRCE_FLOW_VOICE_CUES);
+    } else if (strcmp(id, "voice_off") == 0) {
+        circe_voice_set_mode(CIRCE_VOICE_MODE_OFF);
+        circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_VOICE_DISABLED));
+        go_step(CIRCE_FLOW_VOICE_CUES);
+    } else if (strcmp(id, "voice_soft") == 0) {
+        circe_voice_set_mode(CIRCE_VOICE_MODE_SOFT);
+        circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_VOICE_ENABLED));
+        go_step(CIRCE_FLOW_VOICE_CUES);
     } else if (strcmp(id, "appearance_apply") == 0) {
         circe_theme_commit_preview();
         apply_theme_to_shell();
@@ -1285,6 +1297,7 @@ void circe_ui_show_step(circe_flow_step_t step)
         s_nav_back_step = CIRCE_FLOW_HOME;
         add_btn(circe_copy_get(CIRCE_PATTERN_MORE_APPEARANCE), "more_appearance");
         add_btn("TIME", "more_time");
+        add_btn(circe_copy_get(CIRCE_PATTERN_VOICE_CUES), "more_voice");
         add_btn(circe_copy_get(CIRCE_PATTERN_MORE_STORAGE), "more_storage");
         add_back_btn(CIRCE_FLOW_HOME);
         focus_first_obj(s_first_row);
@@ -1531,6 +1544,27 @@ void circe_ui_show_step(circe_flow_step_t step)
         focus_first_obj(s_first_row);
         break;
     }
+
+    case CIRCE_FLOW_VOICE_CUES:
+        setup_terminal_shell(CIRCE_FLOW_MORE, "voice cues");
+        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_VOICE_TITLE));
+        s_nav_back_step = CIRCE_FLOW_MORE;
+        if (!circe_voice_is_available()) {
+            circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_VOICE_UNAVAILABLE));
+            add_back_btn(CIRCE_FLOW_MORE);
+        } else {
+            circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_VOICE_CUES));
+            if (circe_voice_get_mode() == CIRCE_VOICE_MODE_SOFT) {
+                add_btn(circe_copy_get(CIRCE_PATTERN_VOICE_SOFT), "voice_soft");
+                add_btn(circe_copy_get(CIRCE_PATTERN_VOICE_OFF), "voice_off");
+            } else {
+                add_btn(circe_copy_get(CIRCE_PATTERN_VOICE_OFF), "voice_off");
+                add_btn(circe_copy_get(CIRCE_PATTERN_VOICE_SOFT), "voice_soft");
+            }
+            add_back_btn(CIRCE_FLOW_MORE);
+        }
+        focus_first_obj(s_first_row);
+        break;
 
     case CIRCE_FLOW_MEMORY_MENU:
         setup_terminal_shell(CIRCE_FLOW_HOME, "memory");

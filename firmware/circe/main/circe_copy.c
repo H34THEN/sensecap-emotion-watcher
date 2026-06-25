@@ -142,6 +142,13 @@ static const circe_copy_row_t s_copy[] = {
     {CIRCE_PATTERN_PHOTO_UNAVAILABLE, "photo.unavailable", "Camera unavailable."},
     {CIRCE_PATTERN_PHOTO_ATTACHED, "photo.attached", "Photo memory saved"},
     {CIRCE_PATTERN_PHOTO_ENTRY_STILL_SAVED, "photo.entry_still_saved", "Entry is still saved."},
+    {CIRCE_PATTERN_VOICE_TITLE, "voice.title", "VOICE CUES"},
+    {CIRCE_PATTERN_VOICE_CUES, "voice.cues", "Soft local tones only."},
+    {CIRCE_PATTERN_VOICE_OFF, "voice.off", "OFF"},
+    {CIRCE_PATTERN_VOICE_SOFT, "voice.soft", "SOFT"},
+    {CIRCE_PATTERN_VOICE_UNAVAILABLE, "voice.unavailable", "Audio unavailable."},
+    {CIRCE_PATTERN_VOICE_ENABLED, "voice.enabled", "Voice cues on."},
+    {CIRCE_PATTERN_VOICE_DISABLED, "voice.disabled", "Voice cues off."},
 };
 
 const char *circe_copy_get(circe_pattern_key_t key)
