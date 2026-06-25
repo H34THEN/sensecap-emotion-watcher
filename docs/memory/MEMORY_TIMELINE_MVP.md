@@ -156,3 +156,5 @@ Local SD only. No export, sync, or cloud.
 ## Future
 
 Timeline index path now feeds **recent pattern reflection** after save. Full Pattern Recognition analytics UI remains a later phase.
+
+Memory menu / browse hints and index-repair copy are centralized in `circe_copy.c` (`memory.*` keys). Empty-state phrases in `circe_timeline_empty_copy()` match the companion spec. See `docs/conversation/CONVERSATION_ENGINE_COPY_POLISH.md`.

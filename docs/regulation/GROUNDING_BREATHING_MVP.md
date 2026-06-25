@@ -151,3 +151,12 @@ Voice, audio cues, camera, ML, cloud, Strand, medical claims.
 
 - [PHASE-GROUNDING-BREATHING-MVP-REPORT.md](../PHASE-GROUNDING-BREATHING-MVP-REPORT.md)
 - [ENTRY_LIFECYCLE.md](../memory/ENTRY_LIFECYCLE.md)
+- [CONVERSATION_ENGINE_COPY_POLISH.md](../conversation/CONVERSATION_ENGINE_COPY_POLISH.md)
+
+---
+
+## Copy polish + review (2026-06-24)
+
+Grounding, breathing, and anchor intro feeds use `reg.grounding_*`, `reg.breath_*`, `reg.anchor_*` copy keys. Anchor rotation prompts: find one contact point · notice your hands · soften what can soften · name one safe object nearby.
+
+**Regulation review:** DELETE / BACK / HOME only — body EDIT actions hidden for regulation entries.

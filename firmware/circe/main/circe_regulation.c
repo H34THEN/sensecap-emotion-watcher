@@ -54,9 +54,9 @@ static struct {
 } s_reg;
 
 static const char *s_anchor_prompts[] = {
-    "find contact with the ground",
+    "find one contact point",
     "notice your hands",
-    "soften your jaw if you can",
+    "soften what can soften",
     "name one safe object nearby",
 };
 

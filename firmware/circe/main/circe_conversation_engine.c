@@ -41,7 +41,7 @@ circe_pattern_key_t circe_conversation_prompt_for_step(const circe_conversation_
     case CIRCE_FLOW_INTENSITY:
         return CIRCE_PATTERN_BODY_INTENSITY_PROMPT;
     case CIRCE_FLOW_EMOTION_TONE:
-        return CIRCE_PATTERN_BODY_UNKNOWN_OKAY;
+        return CIRCE_PATTERN_TONE_PROMPT;
     case CIRCE_FLOW_COLOR_PICKER:
     case CIRCE_FLOW_COLOR_PRESETS:
         return CIRCE_PATTERN_COLOR_OPTIONAL_PROMPT;

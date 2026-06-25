@@ -98,3 +98,5 @@ CIRCE observes; it does not diagnose.
 ## Privacy
 
 All reflection runs on-device from the saved entry copy returned in the worker completion. No network. No history scan in MVP.
+
+Reflection phrases remain in `circe_reflection.c` (rule engine). Post-save fallback: *Saved. I can remember this with you.* UI shell copy for HOME / REVIEW actions uses `circe_copy.c`. See `docs/conversation/CONVERSATION_ENGINE_COPY_POLISH.md`.

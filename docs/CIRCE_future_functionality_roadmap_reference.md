@@ -1079,7 +1079,7 @@ Recommended order from current firmware state:
 
 1. Reflection Engine MVP
 2. Memory Timeline
-3. Conversation Engine cleanup
+3. Conversation Engine cleanup — **done** (copy polish + regulation review; see `docs/conversation/CONVERSATION_ENGINE_COPY_POLISH.md`)
 4. Pattern Recognition
 5. Regulation Library expansion
 6. Emotional Color Intelligence

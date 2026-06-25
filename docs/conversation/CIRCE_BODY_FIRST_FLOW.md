@@ -124,13 +124,16 @@ stateDiagram-v2
     UserWord --> BodyOptional: optional body
     BodyInvite --> BodyAreas
     BodyAreas --> BodySensations
-    BodySensations --> EmotionOptional
-    EmotionOptional --> ColorOptional: skip emotion
-    EmotionOptional --> ColorOptional: named or skipped
-    ColorOptional --> SaveOrExpand
-    SaveOrExpand --> [*]: save partial/complete
-    SaveOrExpand --> RatingsOptional: user continues
+    BodySensations --> Intensity
+    Intensity --> EmotionalTone: word list
+    EmotionalTone --> ColorField: touch picker / presets
+    ColorField --> EntryReady: confirm summary
+    EntryReady --> [*]: save via worker
 ```
+
+---
+
+REGULATE opens grounding / breathing / body anchor tools (see [GROUNDING_BREATHING_MVP.md](../regulation/GROUNDING_BREATHING_MVP.md)).
 
 ---
 
@@ -141,9 +144,10 @@ stateDiagram-v2
 | 1 | "How are you arriving?" | Tap **Body first** | `flow_path: body_first` |
 | 2 | "Tap where you notice something." | Select areas | `body_areas[]` |
 | 3 | "What quality?" | Select sensations or **Nothing** | `body_sensations[]` |
-| 4 | "Emotion word optional." | Skip / word / Not sure | `emotion_skipped: true` |
-| 5 | "Color for this moment?" | Pick or skip | `color_hex` |
-| 6 | "Save, or add sleep and context?" | **Save** or continue | — |
+| 4 | "Choose a word, or skip." | Tone list or SKIP | `emotion`, `emotion_label`, `emotional_tone` |
+| 5 | "Drag to choose the color of this moment." | Touch field / PRESETS / SKIP | `color_hex`, `color_label`, `color_source` |
+| 6 | "Entry ready." | SAVE or change tone/color | confirm |
+| 7 | "Saved privately." | Review / HOME | — |
 
 Target time: **30–90 seconds** to save after step 3.
 
@@ -173,9 +177,19 @@ Sets `completion_status: partial` if ratings/photo skipped — **valid success s
 
 ---
 
-## Review copy (body-first, no emotion)
+## Review copy (body-first)
 
-**Circe:** "Body: {areas}. {sensations}. No emotion named — that's fine. Color: {hex}. Private: yes."
+**Display (terminal feed):**
+
+```
+body chest / tight / 9
+tone OVERWHELMED
+color CUSTOM #8A4DFF
+```
+
+Tone and color are separate lines. If skipped: `tone UNKNOWN` or `color SKIPPED`.
+
+See [EMOTION_COLOR_FLOW_SPLIT.md](../design/EMOTION_COLOR_FLOW_SPLIT.md).
 
 ---
 
@@ -183,4 +197,21 @@ Sets `completion_status: partial` if ratings/photo skipped — **valid success s
 
 - `flow_path = body_first` when user chooses body at check-in OR uses ambiguous phrase buttons on greeting screen.
 - Greeting screen should expose **phrase chips** for the five scenarios above (icon + short label).
-- Emotion picker step remains in graph but **skippable in one tap** with no confirmation dialog.
+- Emotion tone step (`CIRCE_FLOW_EMOTION_TONE`) is separate from color picker (`CIRCE_FLOW_COLOR_PICKER`).
+- Quick Entry skips tone + touch picker; uses preset color defaults.
+
+---
+
+## Copy polish (2026-06-24)
+
+On-device prompts now use `circe_copy.c` keys:
+
+| Step | Key | Phrase |
+|------|-----|--------|
+| Body area | `body.area_prompt` | Where is your body speaking? |
+| Sensation | `body.sensation_prompt` | What does that area feel like? |
+| Intensity | `body.intensity_prompt` | How strong is the signal? A rough answer is enough. |
+| Tone | `tone.prompt` | Choose a word, or skip. |
+| Tone subline | `tone.rough_ok` | A rough word is enough. |
+
+See `docs/conversation/CONVERSATION_ENGINE_COPY_POLISH.md`.

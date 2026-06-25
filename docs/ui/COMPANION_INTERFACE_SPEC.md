@@ -56,6 +56,8 @@ CIRCE / online
 
 > ready when you are
 
+(Feed line sourced from `home.feed_ready` in `circe_copy.c`.)
+
    [ dim previous ]
    REGULATE          ← 28 px hero, centered
    [ dim next ]
@@ -132,7 +134,7 @@ Vertical stack in bottom band (240 px column centered) — unchanged for body/qu
 
 ## Copy architecture
 
-All user-facing strings originate from `circe_copy.c` pattern keys.
+All user-facing strings originate from `circe_copy.c` pattern keys. Major flows (home, body, tone, color, memory, regulation, status) were wired in the Conversation Engine Copy Polish phase — see `docs/conversation/CONVERSATION_ENGINE_COPY_POLISH.md`.
 
 Future TTS **must** use the same keys as on-screen text (see [VOICE_STATE_UI.md](VOICE_STATE_UI.md)).
 

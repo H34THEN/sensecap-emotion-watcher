@@ -138,6 +138,11 @@ static void format_entry_color_line(char *buf, size_t len, const circe_entry_t *
     }
 }
 
+static bool entry_is_regulation(const circe_entry_t *e)
+{
+    return e && (e->entry_mode == CIRCE_ENTRY_MODE_REGULATION || e->has_regulation);
+}
+
 static void show_entry_summary_feed(const circe_entry_t *e)
 {
     char l1[72];
@@ -184,7 +189,7 @@ static void diagnostics_show_health_feed(void)
 {
     char line[160];
     if (!s_diag_health_valid) {
-        show_terminal_prompt_text("checking storage...");
+        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_STATUS_CHECKING));
         return;
     }
     diagnostics_format_health_line(line, sizeof(line), &s_diag_health);
@@ -209,14 +214,14 @@ static void diagnostics_apply_health(const circe_storage_health_t *h)
 static bool post_health_check(void)
 {
     s_diag_health_valid = false;
-    circe_hud_set_subline(&s_hud, "Checking...");
+    circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_STATUS_CHECKING));
     diagnostics_show_health_feed();
     return circe_worker_post_health_check();
 }
 
 static bool post_probe(void)
 {
-    circe_hud_set_subline(&s_hud, "Probing...");
+    circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_STATUS_PROBING));
     return circe_worker_post_storage_probe();
 }
 
@@ -530,7 +535,7 @@ static bool enqueue_save_async(circe_flow_step_t on_success, int msg_key, bool q
         worker_busy_notice();
         return false;
     }
-    circe_hud_set_subline(&s_hud, "Saving...");
+    circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_STATUS_SAVING));
     if (!circe_worker_post_save_entry(&s_engine->draft, s_engine->editing_existing, on_success, msg_key,
                                       quick_subline)) {
         circe_hud_set_subline(&s_hud, "Save queue failed");
@@ -594,7 +599,7 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
                 go_step(CIRCE_FLOW_HOME);
             }
         } else {
-            circe_hud_set_subline(&s_hud, "couldn't delete — entry remains saved");
+            circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_STATUS_DELETE_FAILED));
         }
         break;
     case CIRCE_WORKER_REBUILD_INDEX:
@@ -646,7 +651,7 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
             s_memory_context = true;
             go_step(CIRCE_FLOW_REVIEW);
         } else {
-            circe_hud_set_subline(&s_hud, "couldn't load entry");
+            circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_STATUS_LOAD_FAILED));
         }
         break;
     default:
@@ -697,7 +702,7 @@ static bool post_load_review(void)
 static bool post_load_timeline(circe_timeline_category_t category)
 {
     s_memory_category = category;
-    circe_hud_set_subline(&s_hud, "Loading memory...");
+    circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_STATUS_LOADING_MEMORY));
     return circe_worker_post_load_timeline(category);
 }
 
@@ -707,7 +712,7 @@ static bool post_load_memory_entry(void)
     if (!id || !id[0]) {
         return false;
     }
-    circe_hud_set_subline(&s_hud, "Loading...");
+    circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_STATUS_LOADING));
     return circe_worker_post_load_entry(id);
 }
 
@@ -934,7 +939,9 @@ static void btn_event_cb(lv_event_t *e)
             worker_post_or_busy(post_delete_review);
         }
     } else if (strcmp(id, "edit") == 0) {
-        go_step(CIRCE_FLOW_EDIT);
+        if (!entry_is_regulation(&s_engine->draft)) {
+            go_step(CIRCE_FLOW_EDIT);
+        }
     } else if (strcmp(id, "edit_color") == 0) {
         s_engine->editing_existing = true;
         go_step(CIRCE_FLOW_COLOR_PICKER);
@@ -1060,14 +1067,20 @@ void circe_ui_show_step(circe_flow_step_t step)
         }
         circe_terminal_feed_init(&s_feed, s_hud.viewport);
         if (!circe_storage_is_ready()) {
-            const char *warn[] = {"> storage unavailable", "> check memory card"};
+            char l1[64];
+            char l2[64];
+            snprintf(l1, sizeof(l1), "> %s", circe_copy_get(CIRCE_PATTERN_STORAGE_UNAVAILABLE_1));
+            snprintf(l2, sizeof(l2), "> %s", circe_copy_get(CIRCE_PATTERN_STORAGE_UNAVAILABLE_2));
+            const char *warn[] = {l1, l2};
             circe_terminal_feed_set(&s_feed, warn, 2);
         } else {
-            const char *lines[] = {"> ready when you are"};
+            char feed_line[64];
+            snprintf(feed_line, sizeof(feed_line), "> %s", circe_copy_get(CIRCE_PATTERN_HOME_FEED_READY));
+            const char *lines[] = {feed_line};
             circe_terminal_feed_set(&s_feed, lines, 1);
         }
         circe_terminal_feed_show_cursor(&s_feed, true);
-        circe_hud_set_subline(&s_hud, "rotate select  press enter");
+        circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_HOME_WHEEL_HINT));
         s_nav_back_step = CIRCE_FLOW_HOME;
         circe_terminal_nav_enable(false);
         circe_home_wheel_create(&s_home_wheel, s_content, 0);
@@ -1154,7 +1167,8 @@ void circe_ui_show_step(circe_flow_step_t step)
 
     case CIRCE_FLOW_EMOTION_TONE:
         setup_terminal_shell(s_engine->editing_existing ? CIRCE_FLOW_EDIT : CIRCE_FLOW_BODY_ADD_MORE, "emotional tone");
-        show_terminal_prompt_text("choose a word, or skip");
+        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_TONE_PROMPT));
+        circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_TONE_ROUGH_OK));
         s_nav_back_step = s_engine->editing_existing ? CIRCE_FLOW_EDIT : CIRCE_FLOW_BODY_ADD_MORE;
         create_scroll_panel();
         for (int i = 0; i < circe_emotion_tone_count; i++) {
@@ -1168,7 +1182,7 @@ void circe_ui_show_step(circe_flow_step_t step)
     case CIRCE_FLOW_COLOR_PICKER:
         s_nav_back_step = s_engine->editing_existing ? CIRCE_FLOW_EDIT : CIRCE_FLOW_EMOTION_TONE;
         circe_terminal_nav_set_back_step(s_nav_back_step);
-        circe_hud_show_color_field_layout(&s_hud, "color field", "drag to choose the color of this moment");
+        circe_hud_show_color_field_layout(&s_hud, "color field", circe_copy_get(CIRCE_PATTERN_COLOR_FIELD_HINT));
         s_column = lv_obj_create(s_content);
         lv_obj_set_size(s_column, 300, 352);
         lv_obj_align(s_column, LV_ALIGN_TOP_MID, 0, 0);
@@ -1199,7 +1213,7 @@ void circe_ui_show_step(circe_flow_step_t step)
 
     case CIRCE_FLOW_COLOR_PRESETS:
         setup_terminal_shell(CIRCE_FLOW_COLOR_PICKER, "color presets");
-        show_terminal_prompt_text("pick a preset color");
+        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_COLOR_PRESETS_PROMPT));
         s_nav_back_step = CIRCE_FLOW_COLOR_PICKER;
         create_scroll_panel();
         for (int i = 0; i < circe_color_preset_count; i++) {
@@ -1263,7 +1277,9 @@ void circe_ui_show_step(circe_flow_step_t step)
         setup_terminal_shell(back, s_memory_context ? "memory detail" : "review entry");
         show_entry_summary_feed(&s_engine->draft);
         s_nav_back_step = back;
-        add_btn("EDIT", "edit");
+        if (!entry_is_regulation(&s_engine->draft)) {
+            add_btn("EDIT", "edit");
+        }
         add_btn("DELETE", "delete");
         if (s_memory_context) {
             add_back_btn(CIRCE_FLOW_MEMORY_BROWSE);
@@ -1276,7 +1292,7 @@ void circe_ui_show_step(circe_flow_step_t step)
 
     case CIRCE_FLOW_MEMORY_MENU:
         setup_terminal_shell(CIRCE_FLOW_HOME, "memory");
-        show_terminal_prompt_text("browse saved entries");
+        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_MEMORY_MENU_PROMPT));
         s_nav_back_step = CIRCE_FLOW_HOME;
         create_scroll_panel();
         add_btn("TODAY", "mem_today");
@@ -1290,7 +1306,7 @@ void circe_ui_show_step(circe_flow_step_t step)
     case CIRCE_FLOW_MEMORY_BROWSE:
         setup_terminal_shell(CIRCE_FLOW_MEMORY_MENU, circe_timeline_category_title(s_memory_category));
         circe_terminal_nav_enable(false);
-        circe_hud_set_subline(&s_hud, "rotate entry  press view");
+        circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_MEMORY_BROWSE_HINT));
         circe_memory_browser_refresh(&s_memory_browser, &s_feed, &s_hud);
         s_nav_back_step = CIRCE_FLOW_MEMORY_MENU;
         create_scroll_panel();
@@ -1317,7 +1333,11 @@ void circe_ui_show_step(circe_flow_step_t step)
     case CIRCE_FLOW_MEMORY_ERROR:
         setup_terminal_shell(CIRCE_FLOW_MEMORY_MENU, "memory");
         {
-            const char *elines[] = {"memory index needs repair", "run diagnostics"};
+            char l1[64];
+            char l2[64];
+            snprintf(l1, sizeof(l1), "> %s", circe_copy_get(CIRCE_PATTERN_MEMORY_INDEX_REPAIR_1));
+            snprintf(l2, sizeof(l2), "> %s", circe_copy_get(CIRCE_PATTERN_MEMORY_INDEX_REPAIR_2));
+            const char *elines[] = {l1, l2};
             circe_terminal_feed_set(&s_feed, elines, 2);
             circe_terminal_feed_show_cursor(&s_feed, true);
         }
@@ -1329,9 +1349,15 @@ void circe_ui_show_step(circe_flow_step_t step)
 
     case CIRCE_FLOW_REVIEW_EMPTY: {
         setup_terminal_shell(CIRCE_FLOW_HOME, "review");
-        const char *lines[] = {"no entries recorded yet", "begin a check-in to create one"};
-        circe_terminal_feed_set(&s_feed, lines, 2);
-        circe_terminal_feed_show_cursor(&s_feed, true);
+        {
+            char l1[64];
+            char l2[64];
+            snprintf(l1, sizeof(l1), "%s", circe_copy_get(CIRCE_PATTERN_REVIEW_EMPTY));
+            snprintf(l2, sizeof(l2), "%s", circe_copy_get(CIRCE_PATTERN_REVIEW_EMPTY_SUB));
+            const char *lines[] = {l1, l2};
+            circe_terminal_feed_set(&s_feed, lines, 2);
+            circe_terminal_feed_show_cursor(&s_feed, true);
+        }
         s_nav_back_step = CIRCE_FLOW_HOME;
         add_btn("HOME", "home");
         focus_first_obj(s_first_row);
@@ -1352,6 +1378,10 @@ void circe_ui_show_step(circe_flow_step_t step)
     }
 
     case CIRCE_FLOW_EDIT:
+        if (entry_is_regulation(&s_engine->draft)) {
+            go_step(CIRCE_FLOW_REVIEW);
+            break;
+        }
         setup_terminal_shell(CIRCE_FLOW_REVIEW, "edit entry");
         show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_EDIT_PROMPT));
         s_nav_back_step = CIRCE_FLOW_REVIEW;
@@ -1381,8 +1411,13 @@ void circe_ui_show_step(circe_flow_step_t step)
     case CIRCE_FLOW_GROUNDING:
         setup_terminal_shell(CIRCE_FLOW_HOME, "grounding");
         {
-            const char *lines[] = {"> grounding sequence", "> notice one thing you can feel",
-                                   "> breathe when ready"};
+            char l1[64];
+            char l2[64];
+            char l3[64];
+            snprintf(l1, sizeof(l1), "> %s", circe_copy_get(CIRCE_PATTERN_REG_GROUNDING_1));
+            snprintf(l2, sizeof(l2), "> %s", circe_copy_get(CIRCE_PATTERN_REG_GROUNDING_2));
+            snprintf(l3, sizeof(l3), "> %s", circe_copy_get(CIRCE_PATTERN_REG_GROUNDING_3));
+            const char *lines[] = {l1, l2, l3};
             circe_terminal_feed_set(&s_feed, lines, 3);
             circe_terminal_feed_show_cursor(&s_feed, true);
         }
@@ -1398,7 +1433,11 @@ void circe_ui_show_step(circe_flow_step_t step)
     case CIRCE_FLOW_BREATHING:
         setup_terminal_shell(CIRCE_FLOW_GROUNDING, "breathing pace");
         {
-            const char *lines[] = {"> follow the pulse if useful", "> you can stop anytime"};
+            char l1[64];
+            char l2[64];
+            snprintf(l1, sizeof(l1), "> %s", circe_copy_get(CIRCE_PATTERN_REG_BREATH_1));
+            snprintf(l2, sizeof(l2), "> %s", circe_copy_get(CIRCE_PATTERN_REG_BREATH_2));
+            const char *lines[] = {l1, l2};
             circe_terminal_feed_set(&s_feed, lines, 2);
             circe_terminal_feed_show_cursor(&s_feed, false);
         }
@@ -1412,7 +1451,11 @@ void circe_ui_show_step(circe_flow_step_t step)
     case CIRCE_FLOW_BODY_ANCHOR:
         setup_terminal_shell(CIRCE_FLOW_GROUNDING, "body anchor");
         {
-            const char *lines[] = {"> stay with what is here", "> no need to name the feeling"};
+            char l1[64];
+            char l2[64];
+            snprintf(l1, sizeof(l1), "> %s", circe_copy_get(CIRCE_PATTERN_REG_ANCHOR_1));
+            snprintf(l2, sizeof(l2), "> %s", circe_copy_get(CIRCE_PATTERN_REG_ANCHOR_2));
+            const char *lines[] = {l1, l2};
             circe_terminal_feed_set(&s_feed, lines, 2);
             circe_terminal_feed_show_cursor(&s_feed, false);
         }
@@ -1425,7 +1468,7 @@ void circe_ui_show_step(circe_flow_step_t step)
 
     case CIRCE_FLOW_REGULATION_SAVE: {
         setup_terminal_shell(CIRCE_FLOW_GROUNDING, "session done");
-        show_terminal_prompt_text("save this session?");
+        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_REG_SAVE_PROMPT));
         char line[64];
         snprintf(line, sizeof(line), "%s %ds rounds %d", s_regulation_result.regulation_type,
                  s_regulation_result.duration_seconds, s_regulation_result.rounds_completed);
