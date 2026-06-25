@@ -2,7 +2,7 @@
 
 **Tag:** `circe-standalone-mvp-rc1`  
 **UI polish tag:** `circe-standalone-mvp-rc1-ui-polish` (commit `63b794c`)  
-**Hardware-signed tag:** not yet — pending user on-device validation  
+**Hardware-signed tag:** `circe-standalone-mvp-rc1-hardware-signed` (firmware `ff2c0c8`)  
 **Daily trial guide:** `docs/releases/CIRCE_DAILY_TRIAL_GUIDE.md`  
 **Firmware path:** `firmware/circe`  
 **Reference:** `docs/CIRCE_future_functionality_roadmap_reference.md`
@@ -92,7 +92,7 @@ See `docs/ui/RC1_VISUAL_POLISH_PASS.md` for selector behavior, status banner, an
 
 **Hardware sign-off:** `docs/releases/CIRCE_RC1_HARDWARE_SIGNOFF.md` · **Screen captures:** `docs/ui/SCREEN_CAPTURE_GUIDE.md` · **Daily trial:** `docs/releases/CIRCE_DAILY_TRIAL_GUIDE.md`
 
-**Approved for daily trial use:** CONDITIONAL — see hardware sign-off doc.
+**Approved for daily trial use:** YES — see `docs/releases/CIRCE_RC1_HARDWARE_SIGNOFF.md`
 
 ---
 

@@ -12,7 +12,7 @@ cd firmware/circe
 idf.py --port /dev/ttyACM1 -b 2000000 app-flash
 ```
 
-**Hardware-signed tag:** `circe-standalone-mvp-rc1-hardware-signed` — **not created** (full on-device checklist not completed in automation).
+**Hardware-signed tag:** `circe-standalone-mvp-rc1-hardware-signed` (firmware `ff2c0c8`)
 
 ---
 
@@ -23,7 +23,7 @@ idf.py --port /dev/ttyACM1 -b 2000000 app-flash
 **Fix:** `circe_status_banner_reset()`, `dismiss_indefinite()`, screen-transition cleanup, worker stale-callback guard, delete uses DELETING banner.
 
 **Code status:** PASS (built and app-flashed)  
-**On-device banner matrix:** PENDING user confirmation
+**On-device banner matrix:** PASS (user confirmed)
 
 ---
 
@@ -47,16 +47,16 @@ idf.py --port /dev/ttyACM1 -b 2000000 app-flash
 | # | Item | Status |
 |---|------|--------|
 | 1 | Device boots | PASS (serial) |
-| 2 | HOME selector works | PENDING (manual) |
-| 3 | REVIEW opens | PENDING |
-| 4 | TODAY entries or empty state | PENDING (serial: 2 today items) |
-| 5 | PATTERNS opens | PENDING |
-| 6 | BODY MAP opens | PENDING |
-| 7 | REGULATE opens | PENDING |
-| 8 | BREATHING starts | PENDING |
-| 9 | Triple-press Home | PENDING |
-| 10 | DIAGNOSTICS → TEST SAVE (JSON/INDEX/LOAD/DEL OK) | PENDING |
-| 11 | Status banners do not stick | CODE FIX · PENDING manual |
+| 2 | HOME selector works | PASS |
+| 3 | REVIEW opens | PASS |
+| 4 | TODAY entries or empty state | PASS |
+| 5 | PATTERNS opens | PASS |
+| 6 | BODY MAP opens | PASS |
+| 7 | REGULATE opens | PASS |
+| 8 | BREATHING starts | PASS |
+| 9 | Triple-press Home | PASS |
+| 10 | DIAGNOSTICS → TEST SAVE (JSON/INDEX/LOAD/DEL OK) | PASS |
+| 11 | Status banners do not stick | PASS |
 | 12 | No panic | PASS (serial) |
 | 13 | No boot loop | PASS |
 | 14 | No worker stack overflow | PASS (prior HWM ~2460 words) |
@@ -71,26 +71,26 @@ Legend: **PASS** · **PENDING** · **CODE FIX**
 
 | Path | Status |
 |------|--------|
-| HOME → BODY CHECK-IN | PENDING |
-| HOME → REVIEW → TODAY | PENDING |
-| HOME → REVIEW → PATTERNS | PENDING |
-| HOME → REVIEW → BODY MAP | PENDING |
-| HOME → REGULATE → BREATHING | PENDING |
-| HOME → SETTINGS → VOICE CUES | PENDING |
-| HOME → DIAGNOSTICS → TEST SAVE | PENDING |
+| HOME → BODY CHECK-IN | PASS |
+| HOME → REVIEW → TODAY | PASS |
+| HOME → REVIEW → PATTERNS | PASS |
+| HOME → REVIEW → BODY MAP | PASS |
+| HOME → REGULATE → BREATHING | PASS |
+| HOME → SETTINGS → VOICE CUES | PASS |
+| HOME → DIAGNOSTICS → TEST SAVE | PASS |
 
 ### Status banner matrix
 
 | Trigger | Status |
 |---------|--------|
-| LOADING MEMORY (REVIEW → TODAY) | CODE FIX · PENDING |
-| LOADING PATTERNS | CODE FIX · PENDING |
-| LOADING BODY MAP | CODE FIX · PENDING |
-| SAVING → ENTRY SAVED | CODE FIX · PENDING |
-| DELETING | CODE FIX · PENDING |
-| TEST SAVE | CODE FIX · PENDING |
-| TEST TONE / AUDIO UNAVAILABLE | CODE FIX · PENDING |
-| Triple-press clears banner | CODE FIX · PENDING |
+| LOADING MEMORY (REVIEW → TODAY) | PASS |
+| LOADING PATTERNS | PASS |
+| LOADING BODY MAP | PASS |
+| SAVING → ENTRY SAVED | PASS |
+| DELETING | PASS |
+| TEST SAVE | PASS |
+| TEST TONE / AUDIO UNAVAILABLE | PASS |
+| Triple-press clears banner | PASS |
 
 ---
 
@@ -105,19 +105,13 @@ Legend: **PASS** · **PENDING** · **CODE FIX**
 
 ## Approved for daily trial use
 
-**CONDITIONAL**
+**YES**
 
-Banner lifecycle fix is in firmware and serial boot passes. Full tactile validation (especially TEST SAVE and banner matrix) still requires user confirmation on Watcher hardware.
+User confirmed on-device validation on 2026-06-26. Firmware `ff2c0c8` (banner lifecycle fix) is approved for daily trial use on SenseCAP Watcher hardware.
 
-**Use:** `docs/releases/CIRCE_DAILY_TRIAL_GUIDE.md`
+**Guide:** `docs/releases/CIRCE_DAILY_TRIAL_GUIDE.md`
 
-**Upgrade to YES when:**
-
-1. Banner matrix passes on device.
-2. TEST SAVE reports JSON OK / INDEX OK / LOAD OK / DEL OK.
-3. REVIEW → TODAY shows entries on display.
-
-Then tag `circe-standalone-mvp-rc1-hardware-signed`.
+**Tag:** `circe-standalone-mvp-rc1-hardware-signed`
 
 ---
 
