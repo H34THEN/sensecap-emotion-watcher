@@ -4,6 +4,8 @@
 #include <string.h>
 #include <strings.h>
 
+#include "circe_buf.h"
+#include "circe_color_intel.h"
 #include "circe_entry_modes.h"
 #include "circe_fonts.h"
 #include "circe_theme.h"
@@ -110,6 +112,14 @@ static void style_label(lv_obj_t *lbl)
     lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_LEFT, 0);
 }
 
+static void style_trait_label(lv_obj_t *lbl)
+{
+    circe_fonts_apply_label(lbl, CIRCE_FONT_ROLE_CAPTION);
+    const circe_theme_palette_t *p = circe_theme_get_palette();
+    lv_obj_set_style_text_color(lbl, circe_theme_color(p->muted), 0);
+    lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_LEFT, 0);
+}
+
 static void update_near_label(circe_color_picker_t *picker)
 {
     if (!picker) {
@@ -121,6 +131,21 @@ static void update_near_label(circe_color_picker_t *picker)
             snprintf(picker->near_label, sizeof(picker->near_label), "near %s", circe_color_presets[i].label);
             return;
         }
+    }
+}
+
+static void update_trait_label(circe_color_picker_t *picker)
+{
+    if (!picker || !picker->trait_label) {
+        return;
+    }
+    circe_color_intel_t intel = {0};
+    if (picker->hex[0] == '#' && circe_color_intel_from_hex(picker->hex, &intel)) {
+        char line[40];
+        snprintf(line, sizeof(line), "%s %s %s", intel.family, intel.temperature, intel.brightness_label);
+        lv_label_set_text(picker->trait_label, line);
+    } else {
+        lv_label_set_text(picker->trait_label, "");
     }
 }
 
@@ -186,6 +211,22 @@ static void update_magnifier(circe_color_picker_t *picker, lv_coord_t x, lv_coor
     lv_obj_move_foreground(picker->magnifier);
 }
 
+static void fill_gradient_canvas(lv_obj_t *canvas)
+{
+    for (lv_coord_t y = 0; y < CIRCE_COLOR_PICKER_CANVAS_H; y++) {
+        int value = 100 - (int)(y * 100 / (CIRCE_COLOR_PICKER_CANVAS_H - 1));
+        if (value < 5) {
+            value = 5;
+        }
+        for (lv_coord_t x = 0; x < CIRCE_COLOR_PICKER_CANVAS_W; x++) {
+            int hue = (int)(x * 359 / (CIRCE_COLOR_PICKER_CANVAS_W - 1));
+            uint8_t r, g, b;
+            hsv_to_rgb(hue, CIRCE_COLOR_PICKER_SAT, value, &r, &g, &b);
+            lv_canvas_set_px_color(canvas, x, y, lv_color_make(r, g, b));
+        }
+    }
+}
+
 static void field_event_cb(lv_event_t *e)
 {
     circe_color_picker_t *picker = lv_event_get_user_data(e);
@@ -246,19 +287,28 @@ void circe_color_picker_create(circe_color_picker_t *picker, lv_obj_t *parent)
 
     const circe_theme_palette_t *p = circe_theme_get_palette();
 
+    size_t buf_pixels = LV_CANVAS_BUF_SIZE_TRUE_COLOR(CIRCE_COLOR_PICKER_CANVAS_W, CIRCE_COLOR_PICKER_CANVAS_H);
+    picker->canvas_buf = circe_buf_alloc(buf_pixels * sizeof(lv_color_t));
+    if (!picker->canvas_buf) {
+        ESP_LOGE(TAG, "canvas buffer alloc failed");
+        return;
+    }
+
     picker->root = lv_obj_create(parent);
-    lv_obj_set_size(picker->root, CIRCE_COLOR_PICKER_FIELD_W + 40, CIRCE_COLOR_PICKER_HEX_Y_OFS + 36);
+    lv_obj_set_size(picker->root, CIRCE_COLOR_PICKER_FIELD_W + 40, CIRCE_COLOR_PICKER_TRAIT_Y_OFS + 28);
     lv_obj_align(picker->root, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_set_style_bg_opa(picker->root, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(picker->root, 0, 0);
     lv_obj_set_style_pad_all(picker->root, 0, 0);
     lv_obj_clear_flag(picker->root, LV_OBJ_FLAG_SCROLLABLE);
 
-    picker->field = lv_obj_create(picker->root);
+    picker->field = lv_canvas_create(picker->root);
+    lv_canvas_set_buffer(picker->field, picker->canvas_buf, CIRCE_COLOR_PICKER_CANVAS_W, CIRCE_COLOR_PICKER_CANVAS_H,
+                         LV_IMG_CF_TRUE_COLOR);
     lv_obj_set_size(picker->field, CIRCE_COLOR_PICKER_FIELD_W, CIRCE_COLOR_PICKER_FIELD_H);
     lv_obj_align(picker->field, LV_ALIGN_TOP_MID, 0, 0);
-    lv_obj_set_style_bg_color(picker->field, circe_theme_color(p->surface), 0);
-    lv_obj_set_style_bg_opa(picker->field, LV_OPA_COVER, 0);
+    lv_img_set_antialias(picker->field, true);
+    fill_gradient_canvas(picker->field);
     lv_obj_set_style_border_width(picker->field, 1, 0);
     lv_obj_set_style_border_color(picker->field, circe_theme_color(p->focus), 0);
     lv_obj_set_style_radius(picker->field, 12, 0);
@@ -269,20 +319,20 @@ void circe_color_picker_create(circe_color_picker_t *picker, lv_obj_t *parent)
     picker->cross_h = lv_obj_create(picker->field);
     lv_obj_set_size(picker->cross_h, CIRCE_COLOR_PICKER_FIELD_W - 8, 1);
     lv_obj_set_style_bg_color(picker->cross_h, circe_theme_color(p->focus), 0);
-    lv_obj_set_style_bg_opa(picker->cross_h, LV_OPA_40, 0);
+    lv_obj_set_style_bg_opa(picker->cross_h, LV_OPA_60, 0);
     lv_obj_clear_flag(picker->cross_h, LV_OBJ_FLAG_CLICKABLE);
 
     picker->cross_v = lv_obj_create(picker->field);
     lv_obj_set_size(picker->cross_v, 1, CIRCE_COLOR_PICKER_FIELD_H - 8);
     lv_obj_set_style_bg_color(picker->cross_v, circe_theme_color(p->focus), 0);
-    lv_obj_set_style_bg_opa(picker->cross_v, LV_OPA_40, 0);
+    lv_obj_set_style_bg_opa(picker->cross_v, LV_OPA_60, 0);
     lv_obj_clear_flag(picker->cross_v, LV_OBJ_FLAG_CLICKABLE);
 
     picker->magnifier = lv_obj_create(picker->field);
     lv_obj_set_size(picker->magnifier, CIRCE_COLOR_PICKER_MAG_SIZE, CIRCE_COLOR_PICKER_MAG_SIZE);
     lv_obj_set_style_radius(picker->magnifier, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_border_width(picker->magnifier, 1, 0);
-    lv_obj_set_style_border_color(picker->magnifier, circe_theme_color(p->text), 0);
+    lv_obj_set_style_border_width(picker->magnifier, 2, 0);
+    lv_obj_set_style_border_color(picker->magnifier, circe_theme_color(p->focus), 0);
     lv_obj_add_flag(picker->magnifier, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(picker->magnifier, LV_OBJ_FLAG_CLICKABLE);
 
@@ -299,12 +349,19 @@ void circe_color_picker_create(circe_color_picker_t *picker, lv_obj_t *parent)
     lv_obj_align(picker->hex_label, LV_ALIGN_TOP_LEFT, 36, CIRCE_COLOR_PICKER_HEX_Y_OFS + 2);
     style_label(picker->hex_label);
 
+    picker->trait_label = lv_label_create(picker->root);
+    lv_obj_set_width(picker->trait_label, CIRCE_COLOR_PICKER_FIELD_W);
+    lv_obj_align(picker->trait_label, LV_ALIGN_TOP_LEFT, 36, CIRCE_COLOR_PICKER_TRAIT_Y_OFS);
+    style_trait_label(picker->trait_label);
+
     update_crosshair(picker);
     lv_obj_move_foreground(picker->cross_h);
     lv_obj_move_foreground(picker->cross_v);
     circe_color_picker_refresh(picker);
 
-    ESP_LOGI(TAG, "created lightweight picker: %d lvgl objects (no grid)", CIRCE_COLOR_PICKER_LVGL_OBJS);
+    ESP_LOGI(TAG, "created canvas picker %dx%d -> %dx%d, %u bytes, %d lvgl objects",
+             CIRCE_COLOR_PICKER_CANVAS_W, CIRCE_COLOR_PICKER_CANVAS_H, CIRCE_COLOR_PICKER_FIELD_W,
+             CIRCE_COLOR_PICKER_FIELD_H, (unsigned)(buf_pixels * sizeof(lv_color_t)), CIRCE_COLOR_PICKER_LVGL_OBJS);
 }
 
 void circe_color_picker_destroy(circe_color_picker_t *picker)
@@ -315,13 +372,18 @@ void circe_color_picker_destroy(circe_color_picker_t *picker)
     if (picker->root) {
         lv_obj_del(picker->root);
     }
+    if (picker->canvas_buf) {
+        circe_buf_free(picker->canvas_buf);
+    }
     picker->root = NULL;
     picker->field = NULL;
     picker->hex_label = NULL;
+    picker->trait_label = NULL;
     picker->preview = NULL;
     picker->magnifier = NULL;
     picker->cross_h = NULL;
     picker->cross_v = NULL;
+    picker->canvas_buf = NULL;
     picker->active = false;
 }
 
@@ -346,6 +408,7 @@ void circe_color_picker_refresh(circe_color_picker_t *picker)
         lv_obj_set_style_bg_color(picker->preview, lv_color_make((uint8_t)r, (uint8_t)g, (uint8_t)b), 0);
         lv_obj_set_style_bg_opa(picker->preview, LV_OPA_COVER, 0);
     }
+    update_trait_label(picker);
     update_crosshair(picker);
 }
 

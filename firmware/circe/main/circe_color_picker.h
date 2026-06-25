@@ -6,19 +6,24 @@
 
 #define CIRCE_COLOR_PICKER_FIELD_W     260
 #define CIRCE_COLOR_PICKER_FIELD_H     200
+#define CIRCE_COLOR_PICKER_CANVAS_W    130
+#define CIRCE_COLOR_PICKER_CANVAS_H    100
 #define CIRCE_COLOR_PICKER_MAG_SIZE    40
 #define CIRCE_COLOR_PICKER_HEX_Y_OFS   (CIRCE_COLOR_PICKER_FIELD_H + 8)
+#define CIRCE_COLOR_PICKER_TRAIT_Y_OFS (CIRCE_COLOR_PICKER_HEX_Y_OFS + 26)
 #define CIRCE_COLOR_PICKER_SAT         85
-#define CIRCE_COLOR_PICKER_LVGL_OBJS   7
+#define CIRCE_COLOR_PICKER_LVGL_OBJS   8
 
 typedef struct {
     lv_obj_t *root;
     lv_obj_t *field;
     lv_obj_t *hex_label;
+    lv_obj_t *trait_label;
     lv_obj_t *preview;
     lv_obj_t *magnifier;
     lv_obj_t *cross_h;
     lv_obj_t *cross_v;
+    lv_color_t *canvas_buf;
     char hex[8];
     char near_label[24];
     int hue;

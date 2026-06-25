@@ -1,8 +1,8 @@
 # Color Picker v2 — Touch Field Design
 
-**Status:** Design only — not implemented in firmware yet.
+**Status:** Implemented — canvas gradient field (Field Polish MVP).
 
-CIRCE stable milestone uses **preset color rows** (`CALM`, `FOCUSED`, …) on `CIRCE_FLOW_COLOR_OPTIONAL`. v2 adds a precise touch-drag field while keeping presets for low-energy use.
+**260×200 px** display field backed by **130×100 RGB565 canvas** (hue left→right, brightness top→bottom, saturation fixed 85%). Touch mapping + preview orb + magnifier + hex + live trait label. No object grid — see [COLOR_PICKER_GRID_CRASH.md](../bugs/COLOR_PICKER_GRID_CRASH.md) and [COLOR_PICKER_FIELD_POLISH_MVP.md](COLOR_PICKER_FIELD_POLISH_MVP.md).
 
 ---
 

@@ -157,5 +157,5 @@ Does not parse full entry structs on worker stack.
 ## Known limitations
 
 - No color-distance-from-prior-entry in this MVP
-- No color picker gradient UI changes
+- Color picker shows live traits on field; full gradient polish in [COLOR_PICKER_FIELD_POLISH_MVP.md](COLOR_PICKER_FIELD_POLISH_MVP.md)
 - REVIEW → TODAY browse display bug unchanged
