@@ -17,7 +17,7 @@
 
 static const char *TAG = "circe_worker";
 
-#define CIRCE_WORKER_STACK 12288
+#define CIRCE_WORKER_STACK 16384
 #define CIRCE_WORKER_PRIO  4
 #define CIRCE_WORKER_QUEUE 6
 
@@ -111,16 +111,20 @@ static void run_save_entry(const circe_worker_cmd_t *cmd, circe_worker_completio
     out->entry = entry;
     if (out->success) {
         snprintf(out->summary, sizeof(out->summary), "Saved %s", out->entry_id);
-        if (cmd->success_step == CIRCE_FLOW_REFLECTION && !cmd->editing_existing) {
-            if (!circe_reflection_load_recent_context()) {
-                circe_reflection_clear_recent_context();
-            }
-        } else {
+    } else {
+        circe_reflection_clear_recent_context();
+        snprintf(out->summary, sizeof(out->summary), "Save failed: %s", circe_save_result_name(out->save_result));
+    }
+}
+
+static void load_reflection_context_after_save(const circe_worker_cmd_t *cmd, const circe_worker_completion_t *out)
+{
+    if (out->success && cmd->success_step == CIRCE_FLOW_REFLECTION && !cmd->editing_existing) {
+        if (!circe_reflection_load_recent_context()) {
             circe_reflection_clear_recent_context();
         }
     } else {
         circe_reflection_clear_recent_context();
-        snprintf(out->summary, sizeof(out->summary), "Save failed: %s", circe_save_result_name(out->save_result));
     }
 }
 
@@ -222,6 +226,7 @@ static void worker_task(void *arg)
             break;
         case CIRCE_WORKER_SAVE_ENTRY:
             run_save_entry(&cmd, &result);
+            load_reflection_context_after_save(&cmd, &result);
             break;
         case CIRCE_WORKER_DELETE_ENTRY:
             run_delete_entry(&cmd, &result);

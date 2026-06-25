@@ -5,9 +5,11 @@
 #include <strings.h>
 
 #include "circe_index.h"
+#include "circe_buf.h"
 #include "circe_storage.h"
 #include "circe_terminal.h"
 #include "circe_time.h"
+#include "cJSON.h"
 #include "esp_log.h"
 
 static const char *TAG = "circe_timeline";
@@ -188,6 +190,165 @@ void circe_timeline_empty_copy(circe_timeline_category_t category, char *line1, 
 const circe_timeline_cache_t *circe_timeline_get_cache(void)
 {
     return &s_cache;
+}
+
+static circe_entry_mode_t mode_from_json(cJSON *root)
+{
+    cJSON *mode = cJSON_GetObjectItem(root, "entry_mode");
+    if (!cJSON_IsString(mode) || !mode->valuestring) {
+        return CIRCE_ENTRY_MODE_BODY_ONLY;
+    }
+    if (strcmp(mode->valuestring, "quick") == 0) {
+        return CIRCE_ENTRY_MODE_QUICK;
+    }
+    if (strcmp(mode->valuestring, "regulation") == 0) {
+        return CIRCE_ENTRY_MODE_REGULATION;
+    }
+    return CIRCE_ENTRY_MODE_BODY_ONLY;
+}
+
+static bool item_from_json_path(const circe_index_row_t *row, circe_timeline_item_t *item)
+{
+    if (!row || !item || !row->json_path[0]) {
+        return false;
+    }
+    char *json = NULL;
+    if (!circe_json_buf_alloc(&json, CIRCE_JSON_BUF_SIZE)) {
+        return false;
+    }
+    FILE *f = fopen(row->json_path, "r");
+    if (!f) {
+        circe_json_buf_free(json);
+        return false;
+    }
+    size_t n = fread(json, 1, CIRCE_JSON_BUF_SIZE - 1, f);
+    json[n] = '\0';
+    fclose(f);
+
+    cJSON *root = cJSON_Parse(json);
+    circe_json_buf_free(json);
+    if (!root) {
+        return false;
+    }
+
+    memset(item, 0, sizeof(*item));
+    strncpy(item->entry_id, row->id, sizeof(item->entry_id) - 1);
+    time_label_from_created_at(row->created_at, item->time_label, sizeof(item->time_label));
+    if (row->local_date[0]) {
+        strncpy(item->date_label, row->local_date, sizeof(item->date_label) - 1);
+    }
+
+    item->entry_mode = mode_from_json(root);
+    if (item->entry_mode == CIRCE_ENTRY_MODE_REGULATION) {
+        item->has_regulation = true;
+    }
+    if (cJSON_GetObjectItem(root, "regulation_type")) {
+        item->has_regulation = true;
+        cJSON *rt = cJSON_GetObjectItem(root, "regulation_type");
+        if (cJSON_IsString(rt) && rt->valuestring) {
+            upper_field(item->regulation_type, sizeof(item->regulation_type), rt->valuestring);
+        }
+        cJSON *dur = cJSON_GetObjectItem(root, "duration_seconds");
+        if (cJSON_IsNumber(dur)) {
+            item->regulation_duration_seconds = dur->valueint;
+        }
+        cJSON *rounds = cJSON_GetObjectItem(root, "rounds_completed");
+        if (cJSON_IsNumber(rounds)) {
+            item->regulation_rounds_completed = rounds->valueint;
+        }
+        cJSON *done = cJSON_GetObjectItem(root, "session_completed");
+        if (cJSON_IsBool(done)) {
+            item->regulation_session_completed = cJSON_IsTrue(done);
+        }
+    }
+
+    cJSON *areas = cJSON_GetObjectItem(root, "body_areas");
+    if (cJSON_IsArray(areas) && cJSON_GetArraySize(areas) > 0) {
+        cJSON *a0 = cJSON_GetArrayItem(areas, 0);
+        if (cJSON_IsString(a0) && a0->valuestring) {
+            upper_field(item->body_area, sizeof(item->body_area), a0->valuestring);
+        }
+    }
+
+    cJSON *intensity = cJSON_GetObjectItem(root, "intensity");
+    if (cJSON_IsNumber(intensity)) {
+        item->intensity = intensity->valueint;
+    }
+
+    cJSON *el = cJSON_GetObjectItem(root, "emotion_label");
+    if (cJSON_IsString(el) && el->valuestring) {
+        upper_field(item->emotion_label, sizeof(item->emotion_label), el->valuestring);
+    }
+    cJSON *es = cJSON_GetObjectItem(root, "emotion_skipped");
+    if (cJSON_IsBool(es)) {
+        item->emotion_skipped = cJSON_IsTrue(es);
+    }
+
+    cJSON *cs = cJSON_GetObjectItem(root, "color_skipped");
+    if (cJSON_IsBool(cs)) {
+        item->color_skipped = cJSON_IsTrue(cs);
+    }
+    cJSON *hex = cJSON_GetObjectItem(root, "color_hex");
+    if (cJSON_IsString(hex) && hex->valuestring && hex->valuestring[0] == '#') {
+        strncpy(item->color_hex, hex->valuestring, sizeof(item->color_hex) - 1);
+    }
+    cJSON *cl = cJSON_GetObjectItem(root, "color_label");
+    if (cJSON_IsString(cl) && cl->valuestring) {
+        upper_field(item->color_label, sizeof(item->color_label), cl->valuestring);
+    }
+
+    cJSON_Delete(root);
+    return true;
+}
+
+bool circe_timeline_load_pattern_context(circe_timeline_item_t *items, int max_items, int *out_count)
+{
+    if (!items || max_items <= 0 || !out_count) {
+        return false;
+    }
+    *out_count = 0;
+
+    if (!circe_storage_is_ready()) {
+        return false;
+    }
+    circe_storage_rebuild_index_if_dirty(NULL);
+
+    circe_index_row_t *rows = circe_buf_alloc(sizeof(circe_index_row_t) * CIRCE_TIMELINE_MAX_ITEMS);
+    if (!rows) {
+        return false;
+    }
+
+    int row_count = 0;
+    bool more = false;
+    bool ok = true;
+    char today[CIRCE_MAX_DATE] = {0};
+    char week_start[CIRCE_MAX_DATE] = {0};
+    circe_time_format_date(today, sizeof(today));
+    circe_time_offset_date(-6, week_start, sizeof(week_start));
+
+    if (circe_time_is_set()) {
+        filter_since_ctx_t fctx = {.since_date = week_start[0] ? week_start : today};
+        ok = circe_index_list_collect(rows, CIRCE_TIMELINE_MAX_ITEMS, &row_count, &more, filter_since_date, &fctx);
+    } else {
+        ok = circe_index_list_collect(rows, CIRCE_TIMELINE_MAX_ITEMS, &row_count, &more, filter_all, NULL);
+    }
+
+    if (!ok) {
+        circe_buf_free(rows);
+        return false;
+    }
+
+    int limit = row_count < max_items ? row_count : max_items;
+    for (int i = 0; i < limit; i++) {
+        if (!item_from_json_path(&rows[i], &items[*out_count])) {
+            continue;
+        }
+        (*out_count)++;
+    }
+
+    circe_buf_free(rows);
+    ESP_LOGI(TAG, "pattern context: %d items", *out_count);
+    return *out_count > 0;
 }
 
 bool circe_timeline_load_category(circe_timeline_category_t category, circe_timeline_cache_t *cache)

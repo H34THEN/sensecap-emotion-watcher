@@ -8,8 +8,8 @@ Extends post-save reflection with **one** gentle observation from recent local e
 
 After a successful save to `CIRCE_FLOW_REFLECTION`:
 
-1. Worker calls `circe_reflection_load_recent_context()` (timeline THIS WEEK, or ALL if time unset).
-2. Worker completion returns saved entry to UI (unchanged).
+1. Worker completes save, then calls `circe_reflection_load_recent_context()` **after** save stack unwinds.
+2. Lightweight loader `circe_timeline_load_pattern_context()` reads up to **10** entries with minimal JSON field extraction (not full `circe_entry_load`).
 3. UI calls `circe_reflection_generate()` which reads the static recent cache and applies pattern rules.
 4. If history load fails or no pattern matches → immediate (current-entry) reflection.
 

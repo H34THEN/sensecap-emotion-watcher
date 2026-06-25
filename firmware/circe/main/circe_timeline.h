@@ -6,6 +6,7 @@
 #include "circe_entry.h"
 
 #define CIRCE_TIMELINE_MAX_ITEMS 16
+#define CIRCE_PATTERN_CONTEXT_MAX  10
 
 typedef enum {
     CIRCE_TIMELINE_CAT_TODAY = 0,
@@ -48,6 +49,7 @@ const char *circe_timeline_category_title(circe_timeline_category_t category);
 void circe_timeline_empty_copy(circe_timeline_category_t category, char *line1, size_t l1, char *line2, size_t l2);
 
 bool circe_timeline_load_category(circe_timeline_category_t category, circe_timeline_cache_t *cache);
+bool circe_timeline_load_pattern_context(circe_timeline_item_t *items, int max_items, int *out_count);
 const circe_timeline_cache_t *circe_timeline_get_cache(void);
 
 void circe_timeline_item_format_lines(const circe_timeline_item_t *item, char *line1, size_t l1, char *line2,

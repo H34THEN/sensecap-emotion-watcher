@@ -30,23 +30,13 @@ void circe_reflection_clear_recent_context(void)
 
 bool circe_reflection_load_recent_context(void)
 {
-    circe_timeline_cache_t cache = {0};
-    bool ok;
-    if (circe_time_is_set()) {
-        ok = circe_timeline_load_category(CIRCE_TIMELINE_CAT_THIS_WEEK, &cache);
-    } else {
-        ok = circe_timeline_load_category(CIRCE_TIMELINE_CAT_ALL, &cache);
-    }
-    if (!ok || cache.index_error || cache.count <= 0) {
+    int count = 0;
+    if (!circe_timeline_load_pattern_context(s_recent, CIRCE_PATTERN_CONTEXT_MAX, &count) || count <= 0) {
         circe_reflection_clear_recent_context();
         ESP_LOGW(TAG, "recent context unavailable");
         return false;
     }
-    s_recent_count = cache.count;
-    if (s_recent_count > CIRCE_TIMELINE_MAX_ITEMS) {
-        s_recent_count = CIRCE_TIMELINE_MAX_ITEMS;
-    }
-    memcpy(s_recent, cache.items, (size_t)s_recent_count * sizeof(s_recent[0]));
+    s_recent_count = count;
     s_recent_loaded = true;
     ESP_LOGI(TAG, "recent context: %d entries", s_recent_count);
     return true;
