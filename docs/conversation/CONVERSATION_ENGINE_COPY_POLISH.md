@@ -44,6 +44,7 @@ Access: `circe_copy_get(CIRCE_PATTERN_*)`
 | `status.*` | Saving… / Checking… / Loading… / load failed / delete failed |
 | `review.empty_sub` | Start with the body when ready. |
 | `storage.unavailable_*` | Storage unavailable / Check memory card |
+| `photo.*` | Photo memory / optional / saved locally / capture / skip / unavailable / entry still saved |
 
 Existing body prompts (`body.area_prompt`, `body.sensation_prompt`, `body.intensity_prompt`) were tightened to match the companion spec.
 
@@ -61,6 +62,7 @@ Existing body prompts (`body.area_prompt`, `body.sensation_prompt`, `body.intens
 | Grounding / breathing / anchor intro | `REG_GROUNDING_*`, `REG_BREATH_*`, `REG_ANCHOR_*` |
 | Regulation save confirm | `REG_SAVE_PROMPT` |
 | Status sublines | `STATUS_*` |
+| Photo memory consent / capture / result | `PHOTO_*` |
 
 Reflection text remains in `circe_reflection.c` (rule-based, observation-safe). Timeline empty states remain in `circe_timeline_empty_copy()` with handoff-aligned phrases.
 

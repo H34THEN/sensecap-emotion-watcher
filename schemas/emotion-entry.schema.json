@@ -73,6 +73,12 @@
       "type": "string",
       "enum": ["muted", "soft", "vivid"]
     },
+    "photo_attached": { "type": "boolean" },
+    "photo_id": { "type": "string" },
+    "photo_path": { "type": "string" },
+    "photo_created_at": { "type": "string" },
+    "photo_consent": { "type": "boolean" },
+    "photo_training_ok": { "type": "boolean" },
     "intensity": { "type": "integer", "minimum": 1, "maximum": 10 },
     "body_areas": {
       "type": "array",

@@ -5,6 +5,7 @@
 
 #include "circe_index.h"
 #include "circe_patterns.h"
+#include "circe_photo.h"
 #include "circe_reflection.h"
 #include "circe_save.h"
 #include "circe_storage.h"
@@ -131,6 +132,10 @@ static void load_reflection_context_after_save(const circe_worker_cmd_t *cmd, co
 
 static void run_delete_entry(const circe_worker_cmd_t *cmd, circe_worker_completion_t *out)
 {
+    circe_entry_t entry;
+    if (circe_entry_load(cmd->delete_id, &entry)) {
+        circe_photo_delete_file_for_entry(&entry);
+    }
     out->success = cmd->delete_id[0] && circe_entry_delete_hard(cmd->delete_id);
     strncpy(out->entry_id, cmd->delete_id, sizeof(out->entry_id) - 1);
     out->entry_id[sizeof(out->entry_id) - 1] = '\0';
@@ -216,6 +221,28 @@ static void run_load_patterns(circe_worker_completion_t *out)
     }
 }
 
+static void run_photo_capture(const circe_worker_cmd_t *cmd, circe_worker_completion_t *out)
+{
+    circe_entry_t entry = cmd->entry;
+    out->photo_result = circe_photo_capture_and_attach(&entry);
+    out->entry = entry;
+    out->success = out->photo_result == CIRCE_PHOTO_RESULT_SAVED;
+    strncpy(out->entry_id, entry.id, sizeof(out->entry_id) - 1);
+    out->entry_id[sizeof(out->entry_id) - 1] = '\0';
+    switch (out->photo_result) {
+    case CIRCE_PHOTO_RESULT_SAVED:
+        snprintf(out->summary, sizeof(out->summary), "Photo saved for %s", out->entry_id);
+        break;
+    case CIRCE_PHOTO_RESULT_SAVE_FAILED:
+        snprintf(out->summary, sizeof(out->summary), "Photo save failed");
+        break;
+    case CIRCE_PHOTO_RESULT_UNAVAILABLE:
+    default:
+        snprintf(out->summary, sizeof(out->summary), "Camera unavailable");
+        break;
+    }
+}
+
 static void run_health_check(circe_worker_completion_t *out)
 {
     circe_storage_health_check(&out->health);
@@ -270,6 +297,9 @@ static void worker_task(void *arg)
             break;
         case CIRCE_WORKER_LOAD_PATTERNS:
             run_load_patterns(&result);
+            break;
+        case CIRCE_WORKER_PHOTO_CAPTURE:
+            run_photo_capture(&cmd, &result);
             break;
         case CIRCE_WORKER_HEALTH_CHECK:
         case CIRCE_WORKER_STORAGE_STATUS:
@@ -395,6 +425,17 @@ bool circe_worker_post_load_entry(const char *id)
 bool circe_worker_post_load_patterns(void)
 {
     return post_simple(CIRCE_WORKER_LOAD_PATTERNS);
+}
+
+bool circe_worker_post_photo_capture(const circe_entry_t *entry)
+{
+    if (!entry) {
+        return false;
+    }
+    circe_worker_cmd_t cmd = {0};
+    cmd.type = CIRCE_WORKER_PHOTO_CAPTURE;
+    cmd.entry = *entry;
+    return post_cmd(&cmd);
 }
 
 bool circe_worker_post_health_check(void)

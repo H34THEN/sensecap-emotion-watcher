@@ -132,6 +132,16 @@ static const circe_copy_row_t s_copy[] = {
     {CIRCE_PATTERN_REG_MENU_BILATERAL, "reg.menu_bilateral", "Bilateral tap"},
     {CIRCE_PATTERN_COLOR_INTEL_ONLY_YOU, "color.intel_only_you", "Only you decide what it means."},
     {CIRCE_PATTERN_COLOR_REVIEW_TRAITS, "color.review_traits", "traits"},
+    {CIRCE_PATTERN_PHOTO_TITLE, "photo.title", "PHOTO MEMORY"},
+    {CIRCE_PATTERN_PHOTO_OPTIONAL, "photo.optional", "optional"},
+    {CIRCE_PATTERN_PHOTO_LOCAL, "photo.local", "saved locally"},
+    {CIRCE_PATTERN_PHOTO_CAPTURE, "photo.capture", "CAPTURE"},
+    {CIRCE_PATTERN_PHOTO_SKIP, "photo.skip", "SKIP"},
+    {CIRCE_PATTERN_PHOTO_SAVED, "photo.saved", "Photo memory saved."},
+    {CIRCE_PATTERN_PHOTO_FAILED, "photo.failed", "Could not save photo."},
+    {CIRCE_PATTERN_PHOTO_UNAVAILABLE, "photo.unavailable", "Camera unavailable."},
+    {CIRCE_PATTERN_PHOTO_ATTACHED, "photo.attached", "Photo memory saved"},
+    {CIRCE_PATTERN_PHOTO_ENTRY_STILL_SAVED, "photo.entry_still_saved", "Entry is still saved."},
 };
 
 const char *circe_copy_get(circe_pattern_key_t key)

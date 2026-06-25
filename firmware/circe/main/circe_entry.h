@@ -38,6 +38,7 @@ typedef enum {
 #define CIRCE_MAX_REGULATION_TYPE 24
 #define CIRCE_MAX_COLOR          8
 #define CIRCE_MAX_JSON_PATH      128
+#define CIRCE_PHOTO_PATH_MAX     128
 
 typedef struct {
     char id[CIRCE_MAX_ID];
@@ -64,6 +65,12 @@ typedef struct {
     char color_temperature[12];
     char color_brightness_label[12];
     char color_saturation_label[12];
+    bool photo_attached;
+    bool photo_consent;
+    bool photo_training_ok;
+    char photo_id[CIRCE_MAX_ID];
+    char photo_path[CIRCE_PHOTO_PATH_MAX];
+    char photo_created_at[32];
     int intensity;
     char body_areas[CIRCE_MAX_BODY_AREAS][24];
     int body_area_count;

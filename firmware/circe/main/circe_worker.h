@@ -8,6 +8,7 @@
 #include "circe_save.h"
 #include "circe_storage.h"
 #include "circe_patterns.h"
+#include "circe_photo.h"
 #include "circe_timeline.h"
 
 typedef enum {
@@ -21,6 +22,7 @@ typedef enum {
     CIRCE_WORKER_LOAD_TIMELINE,
     CIRCE_WORKER_LOAD_ENTRY,
     CIRCE_WORKER_LOAD_PATTERNS,
+    CIRCE_WORKER_PHOTO_CAPTURE,
     CIRCE_WORKER_HEALTH_CHECK,
     CIRCE_WORKER_STORAGE_STATUS,
     CIRCE_WORKER_DIAGNOSTICS_REFRESH,
@@ -50,6 +52,7 @@ typedef struct {
     bool timeline_truncated;
     int timeline_count;
     circe_patterns_result_t patterns;
+    circe_photo_result_t photo_result;
 } circe_worker_completion_t;
 
 typedef void (*circe_worker_done_fn)(const circe_worker_completion_t *result, void *user_data);
@@ -68,6 +71,7 @@ bool circe_worker_post_load_review(void);
 bool circe_worker_post_load_timeline(circe_timeline_category_t category);
 bool circe_worker_post_load_entry(const char *id);
 bool circe_worker_post_load_patterns(void);
+bool circe_worker_post_photo_capture(const circe_entry_t *entry);
 bool circe_worker_post_health_check(void);
 bool circe_worker_post_storage_status(void);
 bool circe_worker_post_diagnostics_refresh(void);

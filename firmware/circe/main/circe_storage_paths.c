@@ -15,6 +15,7 @@ static char s_index_file[96];
 static char s_index_dirty[96];
 static char s_cache_dir[80];
 static char s_logs_dir[80];
+static char s_photos_dir[80];
 static char s_probe_tmp[96];
 
 static bool dir_exists(const char *path)
@@ -94,11 +95,13 @@ void circe_storage_paths_resolve(void)
     static const char *index_names[] = {"INDEX", "index", NULL};
     static const char *cache_names[] = {"CACHE", "cache", NULL};
     static const char *logs_names[] = {"LOGS", "logs", NULL};
+    static const char *photos_names[] = {"PHOTOS", "photos", NULL};
 
     set_subdir(s_entries, sizeof(s_entries), s_base, entries_names);
     set_subdir(s_index_dir, sizeof(s_index_dir), s_base, index_names);
     set_subdir(s_cache_dir, sizeof(s_cache_dir), s_base, cache_names);
     set_subdir(s_logs_dir, sizeof(s_logs_dir), s_base, logs_names);
+    set_subdir(s_photos_dir, sizeof(s_photos_dir), s_base, photos_names);
 
     char index_new[96];
     char index_legacy[96];
@@ -170,6 +173,11 @@ const char *circe_storage_path_cache_dir(void)
 const char *circe_storage_path_logs_dir(void)
 {
     return s_logs_dir;
+}
+
+const char *circe_storage_path_photos(void)
+{
+    return s_photos_dir;
 }
 
 const char *circe_storage_path_probe_tmp(void)

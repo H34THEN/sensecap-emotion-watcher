@@ -125,6 +125,14 @@ bool circe_entry_to_json(const circe_entry_t *entry, char *out, size_t out_len)
         cJSON_AddStringToObject(root, "color_brightness_label", entry->color_brightness_label);
         cJSON_AddStringToObject(root, "color_saturation_label", entry->color_saturation_label);
     }
+    if (entry->photo_attached) {
+        cJSON_AddBoolToObject(root, "photo_attached", true);
+        cJSON_AddStringToObject(root, "photo_id", entry->photo_id[0] ? entry->photo_id : entry->id);
+        cJSON_AddStringToObject(root, "photo_path", entry->photo_path);
+        cJSON_AddStringToObject(root, "photo_created_at", entry->photo_created_at);
+        cJSON_AddBoolToObject(root, "photo_consent", entry->photo_consent);
+        cJSON_AddBoolToObject(root, "photo_training_ok", false);
+    }
     cJSON_AddNumberToObject(root, "intensity", entry->intensity);
     cJSON_AddItemToObject(root, "body_areas", string_array_from_list((const char (*)[32])entry->body_areas, entry->body_area_count, 24));
     cJSON_AddItemToObject(root, "body_sensations",
@@ -347,6 +355,20 @@ bool circe_entry_from_json(const char *json, circe_entry_t *entry)
     if (!cJSON_IsBool(priv)) {
         entry->private_locked = true;
     }
+
+    cJSON *photo_attached = cJSON_GetObjectItem(root, "photo_attached");
+    if (cJSON_IsBool(photo_attached)) {
+        entry->photo_attached = cJSON_IsTrue(photo_attached);
+    }
+    copy_str_field(root, "photo_id", entry->photo_id, sizeof(entry->photo_id));
+    copy_str_field(root, "photo_path", entry->photo_path, sizeof(entry->photo_path));
+    copy_str_field(root, "photo_created_at", entry->photo_created_at, sizeof(entry->photo_created_at));
+    cJSON *photo_consent = cJSON_GetObjectItem(root, "photo_consent");
+    if (cJSON_IsBool(photo_consent)) {
+        entry->photo_consent = cJSON_IsTrue(photo_consent);
+    }
+    cJSON *photo_training = cJSON_GetObjectItem(root, "photo_training_ok");
+    entry->photo_training_ok = cJSON_IsTrue(photo_training);
 
     cJSON *rev = cJSON_GetObjectItem(root, "revision");
     if (cJSON_IsNumber(rev)) {

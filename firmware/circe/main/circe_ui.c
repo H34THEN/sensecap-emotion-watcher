@@ -18,6 +18,7 @@
 #include "circe_home_wheel.h"
 #include "circe_memory_browser.h"
 #include "circe_patterns.h"
+#include "circe_photo.h"
 #include "circe_reflection.h"
 #include "circe_regulation.h"
 #include "circe_timeline.h"
@@ -67,6 +68,7 @@ static circe_color_picker_t s_color_picker;
 static circe_regulation_result_t s_regulation_result;
 static circe_home_wheel_t s_home_wheel;
 static circe_reflection_t s_reflection;
+static circe_photo_result_t s_photo_result;
 static circe_memory_browser_t s_memory_browser;
 static struct {
     bool active;
@@ -165,6 +167,11 @@ static bool entry_is_regulation(const circe_entry_t *e)
     return e && (e->entry_mode == CIRCE_ENTRY_MODE_REGULATION || e->has_regulation);
 }
 
+static bool photo_offer_eligible(void)
+{
+    return s_engine && circe_photo_entry_eligible(&s_engine->draft) && !s_engine->editing_existing;
+}
+
 static void format_regulation_type_label(const char *type, char *buf, size_t len)
 {
     if (!buf || len == 0) {
@@ -212,7 +219,11 @@ static void show_entry_summary_feed(const circe_entry_t *e)
     } else {
         format_entry_body_line(l1, sizeof(l1), e);
         format_entry_tone_line(l2, sizeof(l2), e);
-        format_entry_color_line(l3, sizeof(l3), e);
+        if (e->photo_attached) {
+            snprintf(l3, sizeof(l3), "%s", circe_copy_get(CIRCE_PATTERN_PHOTO_ATTACHED));
+        } else {
+            format_entry_color_line(l3, sizeof(l3), e);
+        }
     }
     const char *lines[] = {l1, l2, l3};
     circe_terminal_feed_set(&s_feed, lines, 3);
@@ -652,6 +663,11 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
             show_save_error(c->save_result);
         }
         break;
+    case CIRCE_WORKER_PHOTO_CAPTURE:
+        s_engine->draft = c->entry;
+        s_photo_result = c->photo_result;
+        go_step(CIRCE_FLOW_PHOTO_RESULT);
+        break;
     case CIRCE_WORKER_DELETE_ENTRY:
         if (c->success) {
             s_review_id[0] = '\0';
@@ -983,8 +999,28 @@ static void btn_event_cb(lv_event_t *e)
     } else if (strcmp(id, "reg_skip") == 0) {
         circe_regulation_result_clear(&s_regulation_result);
         go_step(CIRCE_FLOW_HOME);
+    } else if (strcmp(id, "photo_offer") == 0) {
+        go_step(CIRCE_FLOW_PHOTO_CONSENT);
+    } else if (strcmp(id, "photo_consent_continue") == 0) {
+        circe_photo_mark_consent_given();
+        go_step(CIRCE_FLOW_PHOTO_CAPTURE);
+    } else if (strcmp(id, "photo_capture") == 0) {
+        if (circe_worker_is_busy()) {
+            worker_busy_notice();
+        } else {
+            circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_STATUS_SAVING));
+            if (!circe_worker_post_photo_capture(&s_engine->draft)) {
+                circe_hud_set_subline(&s_hud, "Photo queue failed");
+            }
+        }
+    } else if (strcmp(id, "photo_skip") == 0) {
+        go_step(CIRCE_FLOW_REFLECTION);
     } else if (strcmp(id, "review") == 0) {
-        open_memory_menu();
+        if (s_engine->step == CIRCE_FLOW_PHOTO_RESULT && s_engine->draft.id[0]) {
+            go_step(CIRCE_FLOW_REVIEW);
+        } else {
+            open_memory_menu();
+        }
     } else if (strcmp(id, "more") == 0) {
         go_step(CIRCE_FLOW_MORE);
     } else if (strcmp(id, "more_appearance") == 0) {
@@ -1422,6 +1458,56 @@ void circe_ui_show_step(circe_flow_step_t step)
         if (s_reflection.suggest_regulate) {
             add_btn("REGULATE", "regulate");
         }
+        if (photo_offer_eligible()) {
+            add_btn("PHOTO", "photo_offer");
+        }
+        add_btn("REVIEW", "review");
+        add_btn("HOME", "home");
+        focus_first_obj(s_first_row);
+        break;
+    }
+
+    case CIRCE_FLOW_PHOTO_CONSENT:
+        setup_terminal_shell(CIRCE_FLOW_REFLECTION, "photo memory");
+        {
+            const char *lines[] = {circe_copy_get(CIRCE_PATTERN_PHOTO_TITLE),
+                                   circe_copy_get(CIRCE_PATTERN_PHOTO_OPTIONAL),
+                                   circe_copy_get(CIRCE_PATTERN_PHOTO_LOCAL)};
+            circe_terminal_feed_set(&s_feed, lines, 3);
+            circe_terminal_feed_show_cursor(&s_feed, true);
+        }
+        s_nav_back_step = CIRCE_FLOW_REFLECTION;
+        create_scroll_panel();
+        add_btn("CONTINUE", "photo_consent_continue");
+        add_btn("SKIP", "photo_skip");
+        add_back_btn(CIRCE_FLOW_REFLECTION);
+        focus_first_obj(s_first_row);
+        break;
+
+    case CIRCE_FLOW_PHOTO_CAPTURE:
+        setup_terminal_shell(CIRCE_FLOW_PHOTO_CONSENT, "photo capture");
+        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_PHOTO_TITLE));
+        circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_PHOTO_LOCAL));
+        s_nav_back_step = CIRCE_FLOW_PHOTO_CONSENT;
+        create_scroll_panel();
+        add_btn(circe_copy_get(CIRCE_PATTERN_PHOTO_CAPTURE), "photo_capture");
+        add_btn(circe_copy_get(CIRCE_PATTERN_PHOTO_SKIP), "photo_skip");
+        add_back_btn(CIRCE_FLOW_PHOTO_CONSENT);
+        focus_first_obj(s_first_row);
+        break;
+
+    case CIRCE_FLOW_PHOTO_RESULT: {
+        setup_terminal_shell(CIRCE_FLOW_REFLECTION, "photo result");
+        if (s_photo_result == CIRCE_PHOTO_RESULT_SAVED) {
+            show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_PHOTO_SAVED));
+        } else if (s_photo_result == CIRCE_PHOTO_RESULT_SAVE_FAILED) {
+            show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_PHOTO_FAILED));
+        } else {
+            show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_PHOTO_UNAVAILABLE));
+        }
+        circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_PHOTO_ENTRY_STILL_SAVED));
+        s_nav_back_step = CIRCE_FLOW_REFLECTION;
+        create_scroll_panel();
         add_btn("REVIEW", "review");
         add_btn("HOME", "home");
         focus_first_obj(s_first_row);

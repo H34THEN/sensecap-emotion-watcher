@@ -13,6 +13,7 @@ const char *circe_storage_path_index_file(void);
 const char *circe_storage_path_index_dirty(void);
 const char *circe_storage_path_cache_dir(void);
 const char *circe_storage_path_logs_dir(void);
+const char *circe_storage_path_photos(void);
 const char *circe_storage_path_probe_tmp(void);
 const char *circe_storage_path_entry_ext(void);
 

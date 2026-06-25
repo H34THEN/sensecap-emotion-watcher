@@ -169,7 +169,9 @@ After worker save success, terminal screen `CIRCE_FLOW_REFLECTION`:
 - Header: `SAVED` or `SESSION SAVED`
 - Main: one rule-based observation (immediate entry or recent pattern — see `docs/reflection/REFLECTION_ENGINE_MVP.md` and `docs/reflection/RECENT_PATTERN_REFLECTION_MVP.md`)
 - Subline: optional grounding offer when intensity ≥ 8
-- Actions: `REGULATE` · `REVIEW` · `HOME` (regulation: `REVIEW` · `HOME` only)
+- Actions: `PHOTO` · `REGULATE` · `REVIEW` · `HOME` (body/quick only for PHOTO; regulation: `REVIEW` · `HOME` only)
+
+Optional **PHOTO** opens consent → capture flow. Capture is scaffolded (camera unavailable until SSCMA integration). See `docs/camera/CAMERA_MEMORIES_MVP.md`.
 
 No cards, no scroll — same companion shell typography.
 

@@ -1084,7 +1084,7 @@ Recommended order from current firmware state:
 5. Regulation Library expansion — **done** (see `docs/regulation/REGULATION_LIBRARY_EXPANSION_MVP.md`)
 6. Emotional Color Intelligence — **done** (see `docs/color/EMOTIONAL_COLOR_INTELLIGENCE_MVP.md`)
 7. Improved Color Picker gradient / field polish — **done** (see `docs/color/COLOR_PICKER_FIELD_POLISH_MVP.md`)
-8. Camera Memories
+8. Camera Memories — **scaffold** (see `docs/camera/CAMERA_MEMORIES_MVP.md`)
 9. Voice Personality
 10. Daily Companion
 

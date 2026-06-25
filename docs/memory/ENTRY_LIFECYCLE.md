@@ -33,7 +33,9 @@ User completes save flow (any `entry_mode`).
 6. Append index line (best-effort) to `INDEX/entry_index.jsonl`
 7. **Reflection (MVP):** UI shows `CIRCE_FLOW_REFLECTION` with rule-based text. Worker may load recent timeline entries for one gentle pattern observation before falling back to immediate entry text.
 
-8. **Memory timeline (MVP):** REVIEW opens category menu; worker loads index rows; user browses summaries and opens detail. See `docs/memory/MEMORY_TIMELINE_MVP.md`.
+8. **Optional photo memory (MVP scaffold):** From reflection, body/quick entries may offer **PHOTO** → consent → capture (worker). Photo metadata is additive; entry remains saved if skipped or capture fails. See `docs/camera/CAMERA_MEMORIES_MVP.md`.
+
+9. **Memory timeline (MVP):** REVIEW opens category menu; worker loads index rows; user browses summaries and opens detail. See `docs/memory/MEMORY_TIMELINE_MVP.md`.
 
 ### Initial state flags
 
