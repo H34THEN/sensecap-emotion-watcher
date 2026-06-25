@@ -80,6 +80,7 @@ typedef struct {
     bool has_regulation;
     char regulation_type[CIRCE_MAX_REGULATION_TYPE];
     int regulation_rounds_completed;
+    int regulation_steps_completed;
     int regulation_duration_seconds;
     bool regulation_session_completed;
 } circe_entry_t;

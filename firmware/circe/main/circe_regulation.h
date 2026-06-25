@@ -11,7 +11,9 @@
 typedef struct {
     char regulation_type[CIRCE_REGULATION_TYPE_MAX];
     int rounds_completed;
+    int steps_completed;
     int duration_seconds;
+    int pace_ms;
     bool session_completed;
 } circe_regulation_result_t;
 
@@ -27,6 +29,12 @@ void circe_regulation_apply_to_entry(circe_entry_t *entry, const circe_regulatio
 void circe_regulation_breathing_start(circe_regulation_result_t *result, lv_obj_t *parent,
                                       circe_regulation_action_cb_t cb, void *ctx);
 void circe_regulation_body_anchor_start(circe_regulation_result_t *result, lv_obj_t *parent,
+                                       circe_regulation_action_cb_t cb, void *ctx);
+void circe_regulation_54321_start(circe_regulation_result_t *result, lv_obj_t *parent,
+                                  circe_regulation_action_cb_t cb, void *ctx);
+void circe_regulation_sensory_start(circe_regulation_result_t *result, lv_obj_t *parent,
+                                    circe_regulation_action_cb_t cb, void *ctx);
+void circe_regulation_bilateral_start(circe_regulation_result_t *result, lv_obj_t *parent,
                                        circe_regulation_action_cb_t cb, void *ctx);
 void circe_regulation_destroy(void);
 bool circe_regulation_active(void);

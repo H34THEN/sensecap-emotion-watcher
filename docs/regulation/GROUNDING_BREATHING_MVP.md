@@ -160,3 +160,5 @@ Voice, audio cues, camera, ML, cloud, Strand, medical claims.
 Grounding, breathing, and anchor intro feeds use `reg.grounding_*`, `reg.breath_*`, `reg.anchor_*` copy keys. Anchor rotation prompts: find one contact point · notice your hands · soften what can soften · name one safe object nearby.
 
 **Regulation review:** DELETE / BACK / HOME only — body EDIT actions hidden for regulation entries.
+
+**Library expansion (2026-06-24):** See [REGULATION_LIBRARY_EXPANSION_MVP.md](REGULATION_LIBRARY_EXPANSION_MVP.md) — 5-4-3-2-1, sensory reset, bilateral tap.

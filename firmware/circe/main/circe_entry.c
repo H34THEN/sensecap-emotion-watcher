@@ -144,6 +144,9 @@ bool circe_entry_to_json(const circe_entry_t *entry, char *out, size_t out_len)
         cJSON_AddStringToObject(root, "regulation_type",
                                 entry->regulation_type[0] ? entry->regulation_type : "unknown");
         cJSON_AddNumberToObject(root, "rounds_completed", entry->regulation_rounds_completed);
+        if (entry->regulation_steps_completed > 0) {
+            cJSON_AddNumberToObject(root, "steps_completed", entry->regulation_steps_completed);
+        }
         cJSON_AddNumberToObject(root, "duration_seconds", entry->regulation_duration_seconds);
         cJSON_AddBoolToObject(root, "session_completed", entry->regulation_session_completed);
     }
@@ -253,6 +256,11 @@ bool circe_entry_from_json(const char *json, circe_entry_t *entry)
     cJSON *rounds = cJSON_GetObjectItem(root, "rounds_completed");
     if (cJSON_IsNumber(rounds)) {
         entry->regulation_rounds_completed = rounds->valueint;
+        entry->has_regulation = true;
+    }
+    cJSON *steps = cJSON_GetObjectItem(root, "steps_completed");
+    if (cJSON_IsNumber(steps)) {
+        entry->regulation_steps_completed = steps->valueint;
         entry->has_regulation = true;
     }
     cJSON *duration = cJSON_GetObjectItem(root, "duration_seconds");

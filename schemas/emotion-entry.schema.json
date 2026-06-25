@@ -36,9 +36,10 @@
     },
     "regulation_type": {
       "type": "string",
-      "enum": ["breathing", "body_anchor"]
+      "enum": ["breathing", "body_anchor", "grounding_54321", "sensory_reset", "bilateral_tap"]
     },
     "rounds_completed": { "type": "integer", "minimum": 0 },
+    "steps_completed": { "type": "integer", "minimum": 0 },
     "duration_seconds": { "type": "integer", "minimum": 0 },
     "session_completed": { "type": "boolean" },
     "emotion": { "type": ["string", "null"] },

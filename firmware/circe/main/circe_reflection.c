@@ -311,10 +311,18 @@ static bool generate_regulation(const circe_entry_t *entry, circe_reflection_t *
 {
     out->is_regulation = true;
     out->suggest_regulate = false;
-    if (entry->regulation_session_completed) {
+    char line[CIRCE_REFLECTION_MAIN_MAX];
+    if (strcmp(entry->regulation_type, "grounding_54321") == 0) {
+        copy_main(out, "Session saved. You stayed with the 5-4-3-2-1 sequence.");
+    } else if (strcmp(entry->regulation_type, "sensory_reset") == 0) {
+        copy_main(out, "Session saved. You stayed with sensory reset.");
+    } else if (strcmp(entry->regulation_type, "bilateral_tap") == 0) {
+        snprintf(line, sizeof(line), "Session saved. You stayed with bilateral tap for %d seconds.",
+                 entry->regulation_duration_seconds > 0 ? entry->regulation_duration_seconds : 0);
+        copy_main(out, line);
+    } else if (entry->regulation_session_completed) {
         copy_main(out, "Session complete. I saved this regulation entry.");
     } else {
-        char line[CIRCE_REFLECTION_MAIN_MAX];
         snprintf(line, sizeof(line), "Session saved. You stayed with it for %d seconds.",
                  entry->regulation_duration_seconds > 0 ? entry->regulation_duration_seconds : 0);
         copy_main(out, line);

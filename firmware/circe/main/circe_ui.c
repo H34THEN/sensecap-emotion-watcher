@@ -150,15 +150,49 @@ static bool entry_is_regulation(const circe_entry_t *e)
     return e && (e->entry_mode == CIRCE_ENTRY_MODE_REGULATION || e->has_regulation);
 }
 
+static void format_regulation_type_label(const char *type, char *buf, size_t len)
+{
+    if (!buf || len == 0) {
+        return;
+    }
+    if (!type || !type[0]) {
+        snprintf(buf, len, "SESSION");
+        return;
+    }
+    if (strcmp(type, "grounding_54321") == 0) {
+        snprintf(buf, len, "5-4-3-2-1");
+    } else if (strcmp(type, "sensory_reset") == 0) {
+        snprintf(buf, len, "SENSORY RESET");
+    } else if (strcmp(type, "bilateral_tap") == 0) {
+        snprintf(buf, len, "BILATERAL TAP");
+    } else if (strcmp(type, "body_anchor") == 0) {
+        snprintf(buf, len, "BODY ANCHOR");
+    } else if (strcmp(type, "breathing") == 0) {
+        snprintf(buf, len, "BREATHING");
+    } else {
+        snprintf(buf, len, "%s", type);
+    }
+}
+
 static void show_entry_summary_feed(const circe_entry_t *e)
 {
     char l1[72];
     char l2[48];
     char l3[56];
     if (e->entry_mode == CIRCE_ENTRY_MODE_REGULATION || e->has_regulation) {
-        snprintf(l1, sizeof(l1), "regulation %s", e->regulation_type[0] ? e->regulation_type : "session");
-        snprintf(l2, sizeof(l2), "duration %ds rounds %d", e->regulation_duration_seconds,
-                 e->regulation_rounds_completed);
+        char type_label[32];
+        format_regulation_type_label(e->regulation_type, type_label, sizeof(type_label));
+        snprintf(l1, sizeof(l1), "regulation %s", type_label);
+        if (e->regulation_steps_completed > 0) {
+            snprintf(l2, sizeof(l2), "duration %ds / %d steps", e->regulation_duration_seconds,
+                     e->regulation_steps_completed);
+        } else if (strcmp(e->regulation_type, "bilateral_tap") == 0) {
+            snprintf(l2, sizeof(l2), "duration %ds / %d cycles", e->regulation_duration_seconds,
+                     e->regulation_rounds_completed);
+        } else {
+            snprintf(l2, sizeof(l2), "duration %ds rounds %d", e->regulation_duration_seconds,
+                     e->regulation_rounds_completed);
+        }
         snprintf(l3, sizeof(l3), "completed %s", e->regulation_session_completed ? "yes" : "no");
     } else {
         format_entry_body_line(l1, sizeof(l1), e);
@@ -919,6 +953,12 @@ static void btn_event_cb(lv_event_t *e)
         go_step(CIRCE_FLOW_BREATHING);
     } else if (strcmp(id, "reg_anchor") == 0) {
         go_step(CIRCE_FLOW_BODY_ANCHOR);
+    } else if (strcmp(id, "reg_54321") == 0) {
+        go_step(CIRCE_FLOW_REG_54321);
+    } else if (strcmp(id, "reg_sensory") == 0) {
+        go_step(CIRCE_FLOW_SENSORY_RESET);
+    } else if (strcmp(id, "reg_bilateral") == 0) {
+        go_step(CIRCE_FLOW_BILATERAL_TAP);
     } else if (strcmp(id, "reg_note") == 0) {
         circe_conversation_start_body_only(s_engine);
         go_step(CIRCE_FLOW_BODY_AREA);
@@ -1585,7 +1625,9 @@ void circe_ui_show_step(circe_flow_step_t step)
         create_scroll_panel();
         add_btn("BREATHING", "reg_breathing");
         add_btn("BODY ANCHOR", "reg_anchor");
-        add_btn("SAVE NOTE", "reg_note");
+        add_btn(circe_copy_get(CIRCE_PATTERN_REG_MENU_54321), "reg_54321");
+        add_btn(circe_copy_get(CIRCE_PATTERN_REG_MENU_SENSORY), "reg_sensory");
+        add_btn(circe_copy_get(CIRCE_PATTERN_REG_MENU_BILATERAL), "reg_bilateral");
         add_back_btn(CIRCE_FLOW_HOME);
         focus_first_obj(s_first_row);
         break;
@@ -1626,12 +1668,52 @@ void circe_ui_show_step(circe_flow_step_t step)
         circe_regulation_body_anchor_start(&s_regulation_result, s_column, regulation_action_cb, NULL);
         break;
 
+    case CIRCE_FLOW_REG_54321:
+        setup_terminal_shell(CIRCE_FLOW_GROUNDING, "5-4-3-2-1");
+        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_REG_54321_TITLE));
+        circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_REG_PRESS_NEXT));
+        s_nav_back_step = CIRCE_FLOW_GROUNDING;
+        circe_terminal_nav_enable(false);
+        begin_content_column();
+        circe_regulation_54321_start(&s_regulation_result, s_column, regulation_action_cb, NULL);
+        break;
+
+    case CIRCE_FLOW_SENSORY_RESET:
+        setup_terminal_shell(CIRCE_FLOW_GROUNDING, "sensory reset");
+        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_REG_SENSORY_TITLE));
+        circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_REG_LONG_END));
+        s_nav_back_step = CIRCE_FLOW_GROUNDING;
+        circe_terminal_nav_enable(false);
+        begin_content_column();
+        circe_regulation_sensory_start(&s_regulation_result, s_column, regulation_action_cb, NULL);
+        break;
+
+    case CIRCE_FLOW_BILATERAL_TAP:
+        setup_terminal_shell(CIRCE_FLOW_GROUNDING, "bilateral tap");
+        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_REG_BILATERAL_TITLE));
+        circe_hud_set_subline(&s_hud, "PRESS PAUSE  TURN SPEED  DBL BACK  HOLD END");
+        s_nav_back_step = CIRCE_FLOW_GROUNDING;
+        circe_terminal_nav_enable(false);
+        begin_content_column();
+        circe_regulation_bilateral_start(&s_regulation_result, s_column, regulation_action_cb, NULL);
+        break;
+
     case CIRCE_FLOW_REGULATION_SAVE: {
         setup_terminal_shell(CIRCE_FLOW_GROUNDING, "session done");
         show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_REG_SAVE_PROMPT));
         char line[64];
-        snprintf(line, sizeof(line), "%s %ds rounds %d", s_regulation_result.regulation_type,
-                 s_regulation_result.duration_seconds, s_regulation_result.rounds_completed);
+        char type_label[32];
+        format_regulation_type_label(s_regulation_result.regulation_type, type_label, sizeof(type_label));
+        if (s_regulation_result.steps_completed > 0) {
+            snprintf(line, sizeof(line), "%s %ds / %d steps", type_label, s_regulation_result.duration_seconds,
+                     s_regulation_result.steps_completed);
+        } else if (strcmp(s_regulation_result.regulation_type, "bilateral_tap") == 0) {
+            snprintf(line, sizeof(line), "%s %ds / %d cycles", type_label, s_regulation_result.duration_seconds,
+                     s_regulation_result.rounds_completed);
+        } else {
+            snprintf(line, sizeof(line), "%s %ds rounds %d", type_label, s_regulation_result.duration_seconds,
+                     s_regulation_result.rounds_completed);
+        }
         circe_hud_set_subline(&s_hud, line);
         s_nav_back_step = CIRCE_FLOW_GROUNDING;
         add_btn("SAVE", "reg_save");
