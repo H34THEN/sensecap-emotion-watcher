@@ -17,6 +17,7 @@ typedef struct {
 typedef enum {
     CIRCE_ENTRY_MODE_BODY_ONLY = 0,
     CIRCE_ENTRY_MODE_QUICK,
+    CIRCE_ENTRY_MODE_REGULATION,
 } circe_entry_mode_t;
 
 typedef enum {
@@ -29,9 +30,12 @@ typedef enum {
 #define CIRCE_MAX_CONTEXT_TAGS   8
 #define CIRCE_MAX_SUMMARY        280
 #define CIRCE_MAX_EMOTION        64
+#define CIRCE_MAX_COLOR_LABEL    32
+#define CIRCE_MAX_COLOR_SOURCE   24
 #define CIRCE_MAX_ID             40
 #define CIRCE_MAX_DATE           16
 #define CIRCE_MAX_TZ             64
+#define CIRCE_MAX_REGULATION_TYPE 24
 #define CIRCE_MAX_COLOR          8
 #define CIRCE_MAX_JSON_PATH      128
 
@@ -45,7 +49,13 @@ typedef struct {
     circe_interaction_mode_t interaction_mode;
     char emotion[CIRCE_MAX_EMOTION];
     char emotion_family[CIRCE_MAX_EMOTION];
+    char emotion_label[CIRCE_MAX_EMOTION];
+    char emotional_tone[CIRCE_MAX_EMOTION];
+    bool emotion_skipped;
     char color_hex[CIRCE_MAX_COLOR];
+    char color_label[CIRCE_MAX_COLOR_LABEL];
+    char color_source[CIRCE_MAX_COLOR_SOURCE];
+    bool color_skipped;
     int intensity;
     char body_areas[CIRCE_MAX_BODY_AREAS][24];
     int body_area_count;
@@ -67,6 +77,11 @@ typedef struct {
     bool has_sleep;
     bool has_energy;
     bool has_stress;
+    bool has_regulation;
+    char regulation_type[CIRCE_MAX_REGULATION_TYPE];
+    int regulation_rounds_completed;
+    int regulation_duration_seconds;
+    bool regulation_session_completed;
 } circe_entry_t;
 
 void circe_entry_init_defaults(circe_entry_t *entry, circe_entry_mode_t mode);

@@ -15,15 +15,17 @@ Inspired by mood blankets, weather blankets, and crochet color-tracking projects
 
 ## Color picker
 
-### Current (stable milestone)
+### Emotional tone (words)
 
-Preset terminal rows on optional color step — see `circe_quick_color_labels[]` in firmware.
+Terminal list on `CIRCE_FLOW_EMOTION_TONE` — CALM, OVERWHELMED, etc. Writes `emotion`, `emotion_label`, `emotional_tone`. No hex on this step.
 
-### Planned v2 (design only)
+See [EMOTION_COLOR_FLOW_SPLIT.md](EMOTION_COLOR_FLOW_SPLIT.md).
 
-Touch-drag circular field with magnifier, live hex, encoder fine-tune, preset fallback.
+### Color field (v2)
 
-See [COLOR_PICKER_V2_TOUCH_FIELD.md](../color/COLOR_PICKER_V2_TOUCH_FIELD.md).
+Touch-drag field on `CIRCE_FLOW_COLOR_PICKER` with preset fallback on `CIRCE_FLOW_COLOR_PRESETS`.
+
+See [COLOR_PICKER_V2_IMPLEMENTATION.md](../color/COLOR_PICKER_V2_IMPLEMENTATION.md).
 
 ### Legacy notes
 
@@ -130,6 +132,25 @@ One color record per entry; strand renderer queries all entries in range.
 ## RGB LED feedback (optional)
 
 During color picker step, set Watcher RGB LED to selected color (solid mode) via BSP — reinforces embodiment. User setting: `ambient_led_during_entry` default off.
+
+---
+
+## Default UI theme — Neon Terminal
+
+Starter palette for circular HUD readability (2026-06-24):
+
+| Role | Hex |
+|------|-----|
+| Background | `#000000` |
+| Surface | `#050505` |
+| Panel | `#0B0B0F` |
+| Text | `#E8FFE8` |
+| Muted | `#8FAF9A` |
+| Accent (green) | `#39FF14` |
+| Accent (magenta) | `#FF2BD6` |
+| Border | `#243024` |
+
+Firmware: `CIRCE_THEME_NEON_TERMINAL` — default when no theme saved in NVS. Selectable in Settings → Appearance.
 
 ---
 

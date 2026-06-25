@@ -25,8 +25,14 @@ void circe_entry_init_defaults(circe_entry_t *entry, circe_entry_mode_t mode)
     entry->interaction_mode.short_answer = (mode == CIRCE_ENTRY_MODE_QUICK);
     strncpy(entry->emotion, CIRCE_EMOTION_UNKNOWN, sizeof(entry->emotion) - 1);
     entry->emotion[sizeof(entry->emotion) - 1] = '\0';
+    strncpy(entry->emotion_label, "UNKNOWN", sizeof(entry->emotion_label) - 1);
+    entry->emotion_label[sizeof(entry->emotion_label) - 1] = '\0';
+    entry->emotion_skipped = true;
+    entry->color_skipped = false;
     strncpy(entry->color_hex, "#808080", sizeof(entry->color_hex) - 1);
     entry->color_hex[sizeof(entry->color_hex) - 1] = '\0';
+    entry->color_label[0] = '\0';
+    entry->color_source[0] = '\0';
     entry->intensity = 5;
     entry->training_ok = false;
     entry->private_locked = true;
@@ -58,6 +64,8 @@ const char *circe_entry_mode_str(circe_entry_mode_t mode)
     switch (mode) {
     case CIRCE_ENTRY_MODE_QUICK:
         return "quick";
+    case CIRCE_ENTRY_MODE_REGULATION:
+        return "regulation";
     default:
         return "body_only";
     }
@@ -96,7 +104,17 @@ bool circe_entry_to_json(const circe_entry_t *entry, char *out, size_t out_len)
     cJSON_AddItemToObject(root, "interaction_mode", im);
     cJSON_AddStringToObject(root, "emotion", entry->emotion);
     cJSON_AddStringToObject(root, "emotion_family", entry->emotion_family[0] ? entry->emotion_family : "");
-    cJSON_AddStringToObject(root, "color_hex", entry->color_hex);
+    cJSON_AddStringToObject(root, "emotion_label", entry->emotion_label[0] ? entry->emotion_label : "UNKNOWN");
+    cJSON_AddStringToObject(root, "emotional_tone", entry->emotional_tone[0] ? entry->emotional_tone : "unknown");
+    cJSON_AddBoolToObject(root, "emotion_skipped", entry->emotion_skipped);
+    if (entry->color_skipped || entry->color_hex[0] == '\0') {
+        cJSON_AddNullToObject(root, "color_hex");
+    } else {
+        cJSON_AddStringToObject(root, "color_hex", entry->color_hex);
+    }
+    cJSON_AddStringToObject(root, "color_label", entry->color_label[0] ? entry->color_label : "");
+    cJSON_AddStringToObject(root, "color_source", entry->color_source[0] ? entry->color_source : "unknown");
+    cJSON_AddBoolToObject(root, "color_skipped", entry->color_skipped);
     cJSON_AddNumberToObject(root, "intensity", entry->intensity);
     cJSON_AddItemToObject(root, "body_areas", string_array_from_list((const char (*)[32])entry->body_areas, entry->body_area_count, 24));
     cJSON_AddItemToObject(root, "body_sensations",
@@ -122,6 +140,13 @@ bool circe_entry_to_json(const circe_entry_t *entry, char *out, size_t out_len)
     }
     cJSON_AddItemToObject(root, "context_tags", tags);
     cJSON_AddStringToObject(root, "summary", entry->summary);
+    if (entry->entry_mode == CIRCE_ENTRY_MODE_REGULATION || entry->has_regulation) {
+        cJSON_AddStringToObject(root, "regulation_type",
+                                entry->regulation_type[0] ? entry->regulation_type : "unknown");
+        cJSON_AddNumberToObject(root, "rounds_completed", entry->regulation_rounds_completed);
+        cJSON_AddNumberToObject(root, "duration_seconds", entry->regulation_duration_seconds);
+        cJSON_AddBoolToObject(root, "session_completed", entry->regulation_session_completed);
+    }
     cJSON_AddBoolToObject(root, "training_ok", entry->training_ok);
     cJSON_AddBoolToObject(root, "private_locked", entry->private_locked);
     cJSON_AddStringToObject(root, "lifecycle_state", entry->lifecycle_state == CIRCE_LIFECYCLE_ACTIVE ? "active" : "deleted");
@@ -190,16 +215,55 @@ bool circe_entry_from_json(const char *json, circe_entry_t *entry)
     copy_str_field(root, "timezone_at_capture", entry->timezone_at_capture, sizeof(entry->timezone_at_capture));
     copy_str_field(root, "emotion", entry->emotion, sizeof(entry->emotion));
     copy_str_field(root, "emotion_family", entry->emotion_family, sizeof(entry->emotion_family));
+    copy_str_field(root, "emotion_label", entry->emotion_label, sizeof(entry->emotion_label));
+    copy_str_field(root, "emotional_tone", entry->emotional_tone, sizeof(entry->emotional_tone));
+    copy_str_field(root, "color_label", entry->color_label, sizeof(entry->color_label));
+    copy_str_field(root, "color_source", entry->color_source, sizeof(entry->color_source));
     copy_str_field(root, "color_hex", entry->color_hex, sizeof(entry->color_hex));
     copy_str_field(root, "summary", entry->summary, sizeof(entry->summary));
     copy_str_field(root, "schema_version", entry->schema_version, sizeof(entry->schema_version));
     copy_str_field(root, "source", entry->source, sizeof(entry->source));
 
+    cJSON *emotion_skip = cJSON_GetObjectItem(root, "emotion_skipped");
+    entry->emotion_skipped = cJSON_IsTrue(emotion_skip);
+    cJSON *color_skip = cJSON_GetObjectItem(root, "color_skipped");
+    entry->color_skipped = cJSON_IsTrue(color_skip);
+
+    cJSON *color_hex = cJSON_GetObjectItem(root, "color_hex");
+    if (cJSON_IsNull(color_hex)) {
+        entry->color_hex[0] = '\0';
+        entry->color_skipped = true;
+    }
+
     cJSON *mode = cJSON_GetObjectItem(root, "entry_mode");
-    if (cJSON_IsString(mode) && mode->valuestring && strcmp(mode->valuestring, "quick") == 0) {
-        entry->entry_mode = CIRCE_ENTRY_MODE_QUICK;
+    if (cJSON_IsString(mode) && mode->valuestring) {
+        if (strcmp(mode->valuestring, "quick") == 0) {
+            entry->entry_mode = CIRCE_ENTRY_MODE_QUICK;
+        } else if (strcmp(mode->valuestring, "regulation") == 0) {
+            entry->entry_mode = CIRCE_ENTRY_MODE_REGULATION;
+            entry->has_regulation = true;
+        } else {
+            entry->entry_mode = CIRCE_ENTRY_MODE_BODY_ONLY;
+        }
     } else {
         entry->entry_mode = CIRCE_ENTRY_MODE_BODY_ONLY;
+    }
+
+    copy_str_field(root, "regulation_type", entry->regulation_type, sizeof(entry->regulation_type));
+    cJSON *rounds = cJSON_GetObjectItem(root, "rounds_completed");
+    if (cJSON_IsNumber(rounds)) {
+        entry->regulation_rounds_completed = rounds->valueint;
+        entry->has_regulation = true;
+    }
+    cJSON *duration = cJSON_GetObjectItem(root, "duration_seconds");
+    if (cJSON_IsNumber(duration)) {
+        entry->regulation_duration_seconds = duration->valueint;
+        entry->has_regulation = true;
+    }
+    cJSON *session_done = cJSON_GetObjectItem(root, "session_completed");
+    if (cJSON_IsBool(session_done)) {
+        entry->regulation_session_completed = cJSON_IsTrue(session_done);
+        entry->has_regulation = true;
     }
 
     cJSON *im = cJSON_GetObjectItem(root, "interaction_mode");

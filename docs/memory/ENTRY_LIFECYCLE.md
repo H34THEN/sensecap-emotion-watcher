@@ -30,6 +30,9 @@ User completes save flow (any `entry_mode`).
    - **Time unset:** `/sdcard/CIRCE/ENTRIES/UNSET/<id>.JSN`
    - **Legacy:** `/sdcard/CIRCE/ENTRIES/19700101/` still supported for load/review
 5. Append index line (best-effort) to `INDEX/entry_index.jsonl`
+6. **Reflection (MVP):** UI shows `CIRCE_FLOW_REFLECTION` with rule-based text from the saved entry (not persisted in JSON yet). User may REGULATE, REVIEW, or HOME.
+
+7. **Memory timeline (MVP):** REVIEW opens category menu; worker loads index rows; user browses summaries and opens detail. See `docs/memory/MEMORY_TIMELINE_MVP.md`.
 
 ### Initial state flags
 
@@ -53,6 +56,40 @@ Set time via Settings → TIME on device. Manual values persist in NVS across re
 ### Circe
 
 "Saved privately." / "Thank you for checking in."
+
+---
+
+### Emotion + color fields (firmware v1.1+)
+
+Tone and color are captured on **separate UI steps** and stored in separate JSON fields:
+
+| Field | Step | Notes |
+|-------|------|-------|
+| `emotion` | Emotional Tone | Machine value e.g. `overwhelmed` |
+| `emotion_label` | Emotional Tone | Display label e.g. `OVERWHELMED` |
+| `emotional_tone` | Emotional Tone | Same as label |
+| `emotion_family` | Emotional Tone | Same as label |
+| `emotion_skipped` | Emotional Tone | `true` when user taps SKIP |
+| `color_hex` | Color Field | `#RRGGBB` or null when skipped |
+| `color_label` | Color Field | `CUSTOM`, preset name, or `SKIPPED` |
+| `color_source` | Color Field | `touch_picker`, `preset`, or `skipped` |
+| `color_skipped` | Color Field | `true` when user skips color |
+
+Old entries without split fields remain loadable; review falls back to legacy `emotion` / `color_hex` only.
+
+See [EMOTION_COLOR_FLOW_SPLIT.md](../design/EMOTION_COLOR_FLOW_SPLIT.md).
+
+### Regulation entries (firmware v1.1+)
+
+| Field | Notes |
+|-------|-------|
+| `entry_mode` | `regulation` |
+| `regulation_type` | `breathing` or `body_anchor` |
+| `rounds_completed` | Completed rounds or anchor pass |
+| `duration_seconds` | Session length |
+| `session_completed` | User finished vs long-press end |
+
+See [GROUNDING_BREATHING_MVP.md](../regulation/GROUNDING_BREATHING_MVP.md).
 
 ---
 

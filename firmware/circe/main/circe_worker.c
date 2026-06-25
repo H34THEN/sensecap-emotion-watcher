@@ -6,6 +6,7 @@
 #include "circe_index.h"
 #include "circe_save.h"
 #include "circe_storage.h"
+#include "circe_timeline.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -24,6 +25,8 @@ typedef struct {
     circe_entry_t entry;
     bool editing_existing;
     char delete_id[CIRCE_MAX_ID];
+    char load_entry_id[CIRCE_MAX_ID];
+    circe_timeline_category_t timeline_category;
     circe_flow_step_t success_step;
     int success_message;
     bool show_quick_subline;
@@ -46,11 +49,11 @@ static void log_worker_resources(const char *label)
 static void async_deliver(void *user_data)
 {
     circe_worker_completion_t *result = user_data;
+    s_busy = false;
     if (s_done_fn && result) {
         s_done_fn(result, s_done_ctx);
     }
     free(result);
-    s_busy = false;
 }
 
 static void dispatch_completion_safe(circe_worker_completion_t *result)
@@ -157,6 +160,30 @@ static void run_load_review(circe_worker_completion_t *out)
     }
 }
 
+static void run_load_timeline(const circe_worker_cmd_t *cmd, circe_worker_completion_t *out)
+{
+    circe_timeline_cache_t cache = {0};
+    out->timeline_category = cmd->timeline_category;
+    out->timeline_ok = circe_timeline_load_category(cmd->timeline_category, &cache);
+    out->timeline_index_error = cache.index_error;
+    out->timeline_count = cache.count;
+    out->timeline_empty = cache.count == 0;
+    out->timeline_truncated = cache.truncated;
+    out->success = out->timeline_ok && !cache.index_error;
+    snprintf(out->summary, sizeof(out->summary), "Timeline %s: %d",
+             circe_timeline_category_title(cmd->timeline_category), cache.count);
+}
+
+static void run_load_entry(const circe_worker_cmd_t *cmd, circe_worker_completion_t *out)
+{
+    out->success = cmd->load_entry_id[0] && circe_entry_load(cmd->load_entry_id, &out->entry);
+    out->review_found = out->success;
+    strncpy(out->entry_id, cmd->load_entry_id, sizeof(out->entry_id) - 1);
+    out->entry_id[sizeof(out->entry_id) - 1] = '\0';
+    snprintf(out->summary, sizeof(out->summary), out->success ? "Loaded %s" : "Load failed",
+             cmd->load_entry_id);
+}
+
 static void run_health_check(circe_worker_completion_t *out)
 {
     circe_storage_health_check(&out->health);
@@ -201,6 +228,12 @@ static void worker_task(void *arg)
             break;
         case CIRCE_WORKER_LOAD_REVIEW:
             run_load_review(&result);
+            break;
+        case CIRCE_WORKER_LOAD_TIMELINE:
+            run_load_timeline(&cmd, &result);
+            break;
+        case CIRCE_WORKER_LOAD_ENTRY:
+            run_load_entry(&cmd, &result);
             break;
         case CIRCE_WORKER_HEALTH_CHECK:
         case CIRCE_WORKER_STORAGE_STATUS:
@@ -301,6 +334,26 @@ bool circe_worker_post_reinit_storage(void)
 bool circe_worker_post_load_review(void)
 {
     return post_simple(CIRCE_WORKER_LOAD_REVIEW);
+}
+
+bool circe_worker_post_load_timeline(circe_timeline_category_t category)
+{
+    circe_worker_cmd_t cmd = {0};
+    cmd.type = CIRCE_WORKER_LOAD_TIMELINE;
+    cmd.timeline_category = category;
+    return post_cmd(&cmd);
+}
+
+bool circe_worker_post_load_entry(const char *id)
+{
+    if (!id || !id[0]) {
+        return false;
+    }
+    circe_worker_cmd_t cmd = {0};
+    cmd.type = CIRCE_WORKER_LOAD_ENTRY;
+    strncpy(cmd.load_entry_id, id, sizeof(cmd.load_entry_id) - 1);
+    cmd.load_entry_id[sizeof(cmd.load_entry_id) - 1] = '\0';
+    return post_cmd(&cmd);
 }
 
 bool circe_worker_post_health_check(void)

@@ -24,6 +24,7 @@ void circe_time_get_local(int *year, int *month, int *day, int *hour, int *minut
 void circe_time_format_date(char *buf, size_t len);
 void circe_time_format_time(char *buf, size_t len);
 void circe_time_format_status(char *buf, size_t len);
+bool circe_time_offset_date(int day_delta, char *out, size_t out_len);
 
 bool circe_time_apply(int year, int month, int day, int hour, int minute);
 void circe_time_fill_entry_timestamps(circe_entry_t *entry, bool is_create);

@@ -253,6 +253,38 @@ void circe_hud_show_terminal_shell(circe_hud_t *hud, const char *title, const ch
     }
 }
 
+void circe_hud_show_color_field_layout(circe_hud_t *hud, const char *title, const char *status_line)
+{
+    if (!hud) {
+        return;
+    }
+    circe_hud_set_reset_mode(hud, false);
+    lv_obj_add_flag(hud->presence, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(hud->prompt, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(hud->heading, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(hud->response, LV_OBJ_FLAG_HIDDEN);
+    circe_hud_set_heading(hud, title ? title : "color field");
+    circe_hud_set_response(hud, status_line ? status_line : "");
+    lv_obj_align(hud->heading, LV_ALIGN_TOP_MID, 0, 2);
+    lv_obj_align(hud->response, LV_ALIGN_TOP_MID, 0, 28);
+    lv_obj_set_style_text_align(hud->heading, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_text_align(hud->response, LV_TEXT_ALIGN_CENTER, 0);
+    circe_theme_style_hero(hud->heading);
+    circe_theme_style_status(hud->response);
+    circe_hud_set_subline(hud, "");
+    circe_hud_set_telemetry(hud, 0);
+    if (hud->viewport) {
+        lv_obj_set_style_bg_opa(hud->viewport, LV_OPA_TRANSP, 0);
+        lv_obj_set_style_border_width(hud->viewport, 0, 0);
+        lv_obj_set_size(hud->viewport, CIRCE_HUD_VIEWPORT_W, 48);
+        lv_obj_align(hud->viewport, LV_ALIGN_TOP_MID, 0, 52);
+    }
+    if (hud->actions) {
+        lv_obj_set_size(hud->actions, 300, 352);
+        lv_obj_align(hud->actions, LV_ALIGN_BOTTOM_MID, 0, -6);
+    }
+}
+
 void circe_hud_show_terminal_prompt(circe_hud_t *hud, const char *status_line)
 {
     circe_hud_show_terminal_shell(hud, "CIRCE", status_line);

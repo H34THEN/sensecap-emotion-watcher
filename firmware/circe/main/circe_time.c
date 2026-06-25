@@ -224,6 +224,34 @@ void circe_time_format_status(char *buf, size_t len)
     snprintf(buf, len, "%s", s_time_set ? "SET" : "UNSET");
 }
 
+bool circe_time_offset_date(int day_delta, char *out, size_t out_len)
+{
+    if (!out || out_len < 11) {
+        return false;
+    }
+    if (!s_time_set) {
+        out[0] = '\0';
+        return false;
+    }
+    int y, m, d, h, mi;
+    circe_time_get_local(&y, &m, &d, &h, &mi);
+    (void)h;
+    (void)mi;
+    struct tm tm_local = {0};
+    tm_local.tm_year = y - 1900;
+    tm_local.tm_mon = m - 1;
+    tm_local.tm_mday = d;
+    tm_local.tm_hour = 12;
+    time_t secs = mktime(&tm_local);
+    if (secs < 0) {
+        return false;
+    }
+    secs += (time_t)day_delta * 86400;
+    localtime_r(&secs, &tm_local);
+    snprintf(out, out_len, "%04d-%02d-%02d", tm_local.tm_year + 1900, tm_local.tm_mon + 1, tm_local.tm_mday);
+    return true;
+}
+
 bool circe_time_apply(int year, int month, int day, int hour, int minute)
 {
     if (year < CIRCE_TIME_MIN_VALID_YEAR || month < 1 || month > 12 || day < 1 || day > 31 || hour < 0 ||

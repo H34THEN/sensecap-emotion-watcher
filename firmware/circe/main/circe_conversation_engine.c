@@ -40,14 +40,24 @@ circe_pattern_key_t circe_conversation_prompt_for_step(const circe_conversation_
         return CIRCE_PATTERN_BODY_SENSATION_PROMPT;
     case CIRCE_FLOW_INTENSITY:
         return CIRCE_PATTERN_BODY_INTENSITY_PROMPT;
-    case CIRCE_FLOW_COLOR_OPTIONAL:
+    case CIRCE_FLOW_EMOTION_TONE:
+        return CIRCE_PATTERN_BODY_UNKNOWN_OKAY;
+    case CIRCE_FLOW_COLOR_PICKER:
+    case CIRCE_FLOW_COLOR_PRESETS:
         return CIRCE_PATTERN_COLOR_OPTIONAL_PROMPT;
     case CIRCE_FLOW_SAVE_CONFIRM:
-        return CIRCE_PATTERN_PRIVACY_DEFAULT_NOTICE;
+        return CIRCE_PATTERN_SAVE_CONFIRMED;
+    case CIRCE_FLOW_COLOR_OPTIONAL:
+        return CIRCE_PATTERN_COLOR_OPTIONAL_PROMPT;
     case CIRCE_FLOW_QUICK_PICK:
         return CIRCE_PATTERN_QUICK_ONE_TAP;
     case CIRCE_FLOW_REVIEW:
         return CIRCE_PATTERN_SAVE_CONFIRMED;
+    case CIRCE_FLOW_MEMORY_MENU:
+    case CIRCE_FLOW_MEMORY_BROWSE:
+    case CIRCE_FLOW_MEMORY_EMPTY:
+    case CIRCE_FLOW_MEMORY_ERROR:
+        return CIRCE_PATTERN_HOME_REVIEW;
     case CIRCE_FLOW_REVIEW_EMPTY:
         return CIRCE_PATTERN_HOME_REVIEW;
     case CIRCE_FLOW_DELETE_CONFIRM:
@@ -55,6 +65,8 @@ circe_pattern_key_t circe_conversation_prompt_for_step(const circe_conversation_
     case CIRCE_FLOW_BODY_ADD_MORE:
         return CIRCE_PATTERN_BODY_ADD_ANOTHER;
     case CIRCE_FLOW_SAVE_DONE:
+        return CIRCE_PATTERN_SAVE_CONFIRMED;
+    case CIRCE_FLOW_REFLECTION:
         return CIRCE_PATTERN_SAVE_CONFIRMED;
     case CIRCE_FLOW_STRAND:
         return CIRCE_PATTERN_STRAND_TODAY;

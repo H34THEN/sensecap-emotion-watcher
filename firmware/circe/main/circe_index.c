@@ -288,6 +288,125 @@ bool circe_index_clear(void)
     return true;
 }
 
+static bool row_active(cJSON *obj)
+{
+    cJSON *jstate = cJSON_GetObjectItem(obj, "lifecycle_state");
+    return !cJSON_IsString(jstate) || strcmp(jstate->valuestring, "active") == 0;
+}
+
+static bool fill_row_from_json(cJSON *obj, circe_index_row_t *row)
+{
+    cJSON *jid = cJSON_GetObjectItem(obj, "id");
+    cJSON *jpath = cJSON_GetObjectItem(obj, "json_path");
+    cJSON *jcreated = cJSON_GetObjectItem(obj, "created_at");
+    cJSON *jdate = cJSON_GetObjectItem(obj, "local_date");
+    if (!cJSON_IsString(jid) || !cJSON_IsString(jpath)) {
+        return false;
+    }
+    strncpy(row->id, jid->valuestring, sizeof(row->id) - 1);
+    row->id[sizeof(row->id) - 1] = '\0';
+    strncpy(row->json_path, jpath->valuestring, sizeof(row->json_path) - 1);
+    row->json_path[sizeof(row->json_path) - 1] = '\0';
+    if (cJSON_IsString(jcreated)) {
+        strncpy(row->created_at, jcreated->valuestring, sizeof(row->created_at) - 1);
+        row->created_at[sizeof(row->created_at) - 1] = '\0';
+    } else {
+        row->created_at[0] = '\0';
+    }
+    if (cJSON_IsString(jdate)) {
+        strncpy(row->local_date, jdate->valuestring, sizeof(row->local_date) - 1);
+        row->local_date[sizeof(row->local_date) - 1] = '\0';
+    } else {
+        row->local_date[0] = '\0';
+    }
+    return true;
+}
+
+bool circe_index_list_collect(circe_index_row_t *rows, int max_rows, int *out_count, bool *more_exist,
+                              circe_index_row_filter_fn accept, void *ctx)
+{
+    if (!rows || max_rows <= 0 || !out_count) {
+        return false;
+    }
+    *out_count = 0;
+    if (more_exist) {
+        *more_exist = false;
+    }
+
+    enum { kPoolMax = 64 };
+    circe_index_row_t *pool = circe_buf_alloc(sizeof(circe_index_row_t) * kPoolMax);
+    if (!pool) {
+        return false;
+    }
+    int pool_count = 0;
+
+    FILE *f = fopen(circe_storage_path_index_file(), "r");
+    if (!f) {
+        circe_buf_free(pool);
+        return true;
+    }
+    char *line = circe_buf_alloc(CIRCE_INDEX_LINE_SIZE);
+    if (!line) {
+        fclose(f);
+        circe_buf_free(pool);
+        return false;
+    }
+    while (fgets(line, CIRCE_INDEX_LINE_SIZE, f)) {
+        cJSON *obj = cJSON_Parse(line);
+        if (!obj) {
+            continue;
+        }
+        if (!row_active(obj)) {
+            cJSON_Delete(obj);
+            continue;
+        }
+        circe_index_row_t row = {0};
+        if (!fill_row_from_json(obj, &row)) {
+            cJSON_Delete(obj);
+            continue;
+        }
+        cJSON_Delete(obj);
+        if (accept && !accept(&row, ctx)) {
+            continue;
+        }
+        if (pool_count < kPoolMax) {
+            pool[pool_count++] = row;
+        } else if (more_exist) {
+            *more_exist = true;
+        }
+    }
+    circe_buf_free(line);
+    fclose(f);
+
+    for (int i = 0; i < pool_count - 1; i++) {
+        for (int j = i + 1; j < pool_count; j++) {
+            int cmp = strcmp(pool[j].created_at, pool[i].created_at);
+            if (pool[i].created_at[0] == '\0' || strcmp(pool[i].created_at, "unset") == 0) {
+                cmp = -1;
+            }
+            if (pool[j].created_at[0] == '\0' || strcmp(pool[j].created_at, "unset") == 0) {
+                cmp = 1;
+            }
+            if (cmp > 0) {
+                circe_index_row_t tmp = pool[i];
+                pool[i] = pool[j];
+                pool[j] = tmp;
+            }
+        }
+    }
+
+    int copy_n = pool_count < max_rows ? pool_count : max_rows;
+    for (int i = 0; i < copy_n; i++) {
+        rows[i] = pool[i];
+    }
+    *out_count = copy_n;
+    if (more_exist && pool_count > max_rows) {
+        *more_exist = true;
+    }
+    circe_buf_free(pool);
+    return true;
+}
+
 bool circe_index_list_for_date(const char *local_date, circe_index_row_t *rows, int max_rows, int *out_count)
 {
     if (!local_date || !rows || max_rows <= 0 || !out_count) {
@@ -335,6 +454,12 @@ bool circe_index_list_for_date(const char *local_date, circe_index_row_t *rows, 
             row->created_at[sizeof(row->created_at) - 1] = '\0';
         } else {
             row->created_at[0] = '\0';
+        }
+        if (cJSON_IsString(jdate)) {
+            strncpy(row->local_date, jdate->valuestring, sizeof(row->local_date) - 1);
+            row->local_date[sizeof(row->local_date) - 1] = '\0';
+        } else {
+            row->local_date[0] = '\0';
         }
         (*out_count)++;
         cJSON_Delete(obj);

@@ -11,8 +11,8 @@ static const char *TAG = "circe_theme";
 #define NVS_NS   "circe_ui"
 #define NVS_KEY  "theme_id"
 
-static circe_theme_id_t s_active = CIRCE_THEME_GHOST_IN_THE_CODE;
-static circe_theme_id_t s_committed = CIRCE_THEME_GHOST_IN_THE_CODE;
+static circe_theme_id_t s_active = CIRCE_THEME_NEON_TERMINAL;
+static circe_theme_id_t s_committed = CIRCE_THEME_NEON_TERMINAL;
 
 /*
  * Phase 6A rebuilt palettes — accent_primary/secondary/muted, border, focus.
@@ -69,6 +69,11 @@ static const circe_theme_palette_t s_palettes[CIRCE_THEME_COUNT] = {
      0x000000, 0x1A1A1A, 0x2A2A2A, 0xFFFFFF, 0xCCCCCC,
      0xFFFF00, 0xFFFF00, 0x888800, 0x444444, 0xFFFF00,
      0x333333, 0xFF6666, 56, 8},
+    /* Neon Terminal — black / magenta / terminal green starter */
+    {"neon", "Neon Terminal",
+     0x000000, 0x050505, 0x0B0B0F, 0xE8FFE8, 0x8FAF9A,
+     0x39FF14, 0xFF2BD6, 0x243024, 0x243024, 0x39FF14,
+     0x000000, 0xFF3B3B, 52, 10},
 };
 
 static void style_focus_ring(lv_obj_t *obj)
@@ -148,22 +153,22 @@ static circe_theme_id_t load_theme_id(void)
         if (err != ESP_ERR_NVS_NOT_FOUND) {
             ESP_LOGW(TAG, "theme load nvs_open(%s) failed: %s", NVS_NS, esp_err_to_name(err));
         }
-        return CIRCE_THEME_GHOST_IN_THE_CODE;
+        return CIRCE_THEME_NEON_TERMINAL;
     }
-    uint8_t id = CIRCE_THEME_GHOST_IN_THE_CODE;
+    uint8_t id = (uint8_t)CIRCE_THEME_NEON_TERMINAL;
     err = nvs_get_u8(h, NVS_KEY, &id);
     nvs_close(h);
     if (err == ESP_ERR_NVS_NOT_FOUND) {
         ESP_LOGI(TAG, "theme load: no saved theme, using default");
-        return CIRCE_THEME_GHOST_IN_THE_CODE;
+        return CIRCE_THEME_NEON_TERMINAL;
     }
     if (err != ESP_OK) {
         ESP_LOGW(TAG, "theme load nvs_get_u8(%s) failed: %s", NVS_KEY, esp_err_to_name(err));
-        return CIRCE_THEME_GHOST_IN_THE_CODE;
+        return CIRCE_THEME_NEON_TERMINAL;
     }
     if (id >= CIRCE_THEME_COUNT) {
         ESP_LOGW(TAG, "theme load: invalid id %u, using default", (unsigned)id);
-        return CIRCE_THEME_GHOST_IN_THE_CODE;
+        return CIRCE_THEME_NEON_TERMINAL;
     }
     return (circe_theme_id_t)id;
 }

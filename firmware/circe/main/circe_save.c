@@ -86,15 +86,34 @@ bool circe_entry_prepare_for_save(circe_entry_t *entry)
 
     entry->training_ok = false;
     entry->private_locked = true;
-    strncpy(entry->emotion, CIRCE_EMOTION_UNKNOWN, sizeof(entry->emotion) - 1);
-    entry->emotion[sizeof(entry->emotion) - 1] = '\0';
 
-    circe_entry_normalize_color_hex(entry->color_hex, sizeof(entry->color_hex));
+    if (entry->emotion[0] == '\0') {
+        strncpy(entry->emotion, CIRCE_EMOTION_UNKNOWN, sizeof(entry->emotion) - 1);
+        entry->emotion[sizeof(entry->emotion) - 1] = '\0';
+    }
+    if (entry->emotion_label[0] == '\0') {
+        strncpy(entry->emotion_label, entry->emotion_skipped ? "UNKNOWN" : entry->emotion,
+                sizeof(entry->emotion_label) - 1);
+        entry->emotion_label[sizeof(entry->emotion_label) - 1] = '\0';
+    }
+
+    if (entry->color_skipped || entry->color_hex[0] == '\0') {
+        entry->color_hex[0] = '\0';
+    } else {
+        circe_entry_normalize_color_hex(entry->color_hex, sizeof(entry->color_hex));
+    }
 
     if (entry->entry_mode == CIRCE_ENTRY_MODE_BODY_ONLY) {
         if (entry->body_area_count <= 0 || entry->body_sensation_count <= 0) {
             ESP_LOGE(TAG, "invalid body entry: areas=%d sensations=%d", entry->body_area_count,
                      entry->body_sensation_count);
+            return false;
+        }
+    }
+
+    if (entry->entry_mode == CIRCE_ENTRY_MODE_REGULATION) {
+        if (entry->regulation_type[0] == '\0') {
+            ESP_LOGE(TAG, "invalid regulation entry: missing regulation_type");
             return false;
         }
     }

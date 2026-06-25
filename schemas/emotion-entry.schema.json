@@ -30,10 +30,29 @@
     "device_id": { "type": "string", "minLength": 1 },
     "completion_status": { "type": "string", "enum": ["complete", "partial"] },
     "flow_path": { "type": "string", "enum": ["standard", "body_first"] },
+    "entry_mode": {
+      "type": "string",
+      "enum": ["body_only", "quick", "regulation"]
+    },
+    "regulation_type": {
+      "type": "string",
+      "enum": ["breathing", "body_anchor"]
+    },
+    "rounds_completed": { "type": "integer", "minimum": 0 },
+    "duration_seconds": { "type": "integer", "minimum": 0 },
+    "session_completed": { "type": "boolean" },
     "emotion": { "type": ["string", "null"] },
+    "emotion_label": { "type": "string" },
+    "emotion_family": { "type": "string" },
+    "emotional_tone": { "type": "string" },
     "emotion_skipped": { "type": "boolean" },
-    "color_hex": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
-    "color_source": { "type": "string", "enum": ["picker", "hex", "favorite", "default"] },
+    "color_hex": { "type": ["string", "null"], "pattern": "^#[0-9A-Fa-f]{6}$" },
+    "color_label": { "type": "string" },
+    "color_source": {
+      "type": "string",
+      "enum": ["picker", "hex", "favorite", "default", "touch_picker", "preset", "skipped", "unknown"]
+    },
+    "color_skipped": { "type": "boolean" },
     "intensity": { "type": "integer", "minimum": 1, "maximum": 10 },
     "body_areas": {
       "type": "array",

@@ -21,6 +21,12 @@ typedef struct {
     char id[CIRCE_MAX_ID];
     char json_path[CIRCE_MAX_JSON_PATH];
     char created_at[32];
+    char local_date[CIRCE_MAX_DATE];
 } circe_index_row_t;
 
 bool circe_index_list_for_date(const char *local_date, circe_index_row_t *rows, int max_rows, int *out_count);
+
+typedef bool (*circe_index_row_filter_fn)(const circe_index_row_t *row, void *ctx);
+
+bool circe_index_list_collect(circe_index_row_t *rows, int max_rows, int *out_count, bool *more_exist,
+                              circe_index_row_filter_fn accept, void *ctx);
