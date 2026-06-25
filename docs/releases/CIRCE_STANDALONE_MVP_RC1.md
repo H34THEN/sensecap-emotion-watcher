@@ -1,6 +1,9 @@
 # CIRCE Standalone MVP — Release Candidate 1
 
-**Tag:** `circe-standalone-mvp-rc1` (if validated)  
+**Tag:** `circe-standalone-mvp-rc1`  
+**UI polish tag:** `circe-standalone-mvp-rc1-ui-polish` (commit `63b794c`)  
+**Hardware-signed tag:** not yet — pending user on-device validation  
+**Daily trial guide:** `docs/releases/CIRCE_DAILY_TRIAL_GUIDE.md`  
 **Firmware path:** `firmware/circe`  
 **Reference:** `docs/CIRCE_future_functionality_roadmap_reference.md`
 
@@ -31,6 +34,7 @@
 | Issue | Status |
 |-------|--------|
 | REVIEW → TODAY browse empty while logs show items | **Fixed** — see `docs/bugs/REVIEW_TODAY_DISPLAY_BUG.md` |
+| Status banner stuck after load/save | **Fixed** — dismiss on screen transition + worker completion (2026-06-26) |
 | Camera capture | **Blocked** — SSCMA/Himax integration deferred |
 | Voice cues full manual validation | **Gap** — implemented; user testing may be pending |
 
@@ -86,7 +90,9 @@ See `docs/ui/RC1_VISUAL_POLISH_PASS.md` for selector behavior, status banner, an
 
 **UI polish tag:** `circe-standalone-mvp-rc1-ui-polish` (commit `63b794c`).
 
-**Hardware sign-off:** `docs/releases/CIRCE_RC1_HARDWARE_SIGNOFF.md` · **Screen captures:** `docs/ui/SCREEN_CAPTURE_GUIDE.md`
+**Hardware sign-off:** `docs/releases/CIRCE_RC1_HARDWARE_SIGNOFF.md` · **Screen captures:** `docs/ui/SCREEN_CAPTURE_GUIDE.md` · **Daily trial:** `docs/releases/CIRCE_DAILY_TRIAL_GUIDE.md`
+
+**Approved for daily trial use:** CONDITIONAL — see hardware sign-off doc.
 
 ---
 

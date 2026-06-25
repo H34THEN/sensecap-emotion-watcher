@@ -272,7 +272,7 @@ Use with **`docs/ui/SCREEN_CAPTURE_GUIDE.md`**. For each screen: **path to reach
 
 **Navigation module:** `circe_encoder.c/h` — double=back, triple=home (550 ms window), long=settings on terminal nav.
 
-**Banner API:** `circe_status_banner_show()` / `show_timed()` / `hide()` — triggered from `circe_ui.c` via `ui_show_status_*()`.
+**Banner API:** `circe_status_banner_show()` / `show_timed()` / `hide()` / `reset()` / `dismiss_indefinite()` — triggered from `circe_ui.c` via `ui_show_status_*()`. Indefinite loading banners clear on `circe_ui_show_step()` and worker completion; timed banners keep auto-hide timer.
 
 ---
 

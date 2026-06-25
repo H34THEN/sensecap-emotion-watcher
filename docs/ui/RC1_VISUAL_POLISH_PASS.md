@@ -66,6 +66,8 @@ Module: `circe_status_banner.c/h`
 - Used for: SAVING, LOADING, DELETING, ENTRY SAVED, voice test, audio unavailable
 - Bottom HUD subline cleared for critical status (non-critical hints only)
 
+**Lifecycle (2026-06-26 fix):** Indefinite loading banners dismiss on screen transition and worker completion. Timed success/error banners auto-hide (800–1500 ms). `reset()` on triple-press Home. Stale worker callbacks no longer leave banners stuck. If a banner still sticks, capture screen/path and serial logs.
+
 ---
 
 ## Triple press Home

@@ -101,9 +101,12 @@ For each screen: **path**, **what should be visible**, **clipping checks**, **so
 
 - [ ] Hero text not cut off at top or bottom of circle
 - [ ] Magenta banner fully inside readable disc (not on bottom rim)
+- [ ] **Loading/saving banner disappears after operation completes**
 - [ ] Selector index (`N / M`) readable
 - [ ] Terminal feed lines (max 5) not overlapping selector
 - [ ] No ghost list items implying false selectability
+
+**Banner lifecycle (2026-06-26):** Banners should clear on completion, back, and triple-press Home. If stuck, note path and report via daily trial guide.
 
 ---
 
