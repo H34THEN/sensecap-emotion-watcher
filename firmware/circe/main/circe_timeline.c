@@ -89,40 +89,19 @@ static void upper_field(char *dest, size_t len, const char *src)
     circe_terminal_to_upper(dest, len, src ? src : "");
 }
 
-static bool item_from_entry(const circe_index_row_t *row, const circe_entry_t *entry, circe_timeline_item_t *item)
+static circe_entry_mode_t mode_from_json(cJSON *root)
 {
-    if (!row || !entry || !item) {
-        return false;
+    cJSON *mode = cJSON_GetObjectItem(root, "entry_mode");
+    if (!cJSON_IsString(mode) || !mode->valuestring) {
+        return CIRCE_ENTRY_MODE_BODY_ONLY;
     }
-    memset(item, 0, sizeof(*item));
-    strncpy(item->entry_id, row->id, sizeof(item->entry_id) - 1);
-    time_label_from_created_at(row->created_at, item->time_label, sizeof(item->time_label));
-    if (entry->local_date[0]) {
-        strncpy(item->date_label, entry->local_date, sizeof(item->date_label) - 1);
-    } else if (row->local_date[0]) {
-        strncpy(item->date_label, row->local_date, sizeof(item->date_label) - 1);
+    if (strcmp(mode->valuestring, "quick") == 0) {
+        return CIRCE_ENTRY_MODE_QUICK;
     }
-    item->entry_mode = entry->entry_mode;
-    item->intensity = entry->intensity;
-    item->color_skipped = entry->color_skipped;
-    item->emotion_skipped = entry->emotion_skipped;
-    item->has_regulation = entry->has_regulation;
-    item->regulation_duration_seconds = entry->regulation_duration_seconds;
-    item->regulation_rounds_completed = entry->regulation_rounds_completed;
-    item->regulation_session_completed = entry->regulation_session_completed;
-    if (entry->body_area_count > 0) {
-        upper_field(item->body_area, sizeof(item->body_area), entry->body_areas[0]);
+    if (strcmp(mode->valuestring, "regulation") == 0) {
+        return CIRCE_ENTRY_MODE_REGULATION;
     }
-    if (entry->body_sensation_count > 0) {
-        upper_field(item->body_sensation, sizeof(item->body_sensation), entry->body_sensations[0]);
-    }
-    upper_field(item->emotion_label, sizeof(item->emotion_label),
-                entry->emotion_label[0] ? entry->emotion_label : "UNKNOWN");
-    strncpy(item->color_hex, entry->color_hex, sizeof(item->color_hex) - 1);
-    upper_field(item->color_label, sizeof(item->color_label), entry->color_label);
-    upper_field(item->regulation_type, sizeof(item->regulation_type),
-                entry->regulation_type[0] ? entry->regulation_type : "SESSION");
-    return true;
+    return CIRCE_ENTRY_MODE_BODY_ONLY;
 }
 
 const char *circe_timeline_category_title(circe_timeline_category_t category)
@@ -192,21 +171,6 @@ const circe_timeline_cache_t *circe_timeline_get_cache(void)
     return &s_cache;
 }
 
-static circe_entry_mode_t mode_from_json(cJSON *root)
-{
-    cJSON *mode = cJSON_GetObjectItem(root, "entry_mode");
-    if (!cJSON_IsString(mode) || !mode->valuestring) {
-        return CIRCE_ENTRY_MODE_BODY_ONLY;
-    }
-    if (strcmp(mode->valuestring, "quick") == 0) {
-        return CIRCE_ENTRY_MODE_QUICK;
-    }
-    if (strcmp(mode->valuestring, "regulation") == 0) {
-        return CIRCE_ENTRY_MODE_REGULATION;
-    }
-    return CIRCE_ENTRY_MODE_BODY_ONLY;
-}
-
 static bool item_from_json_path(const circe_index_row_t *row, circe_timeline_item_t *item)
 {
     if (!row || !item || !row->json_path[0]) {
@@ -267,6 +231,14 @@ static bool item_from_json_path(const circe_index_row_t *row, circe_timeline_ite
         cJSON *a0 = cJSON_GetArrayItem(areas, 0);
         if (cJSON_IsString(a0) && a0->valuestring) {
             upper_field(item->body_area, sizeof(item->body_area), a0->valuestring);
+        }
+    }
+
+    cJSON *sens = cJSON_GetObjectItem(root, "body_sensations");
+    if (cJSON_IsArray(sens) && cJSON_GetArraySize(sens) > 0) {
+        cJSON *s0 = cJSON_GetArrayItem(sens, 0);
+        if (cJSON_IsString(s0) && s0->valuestring) {
+            upper_field(item->body_sensation, sizeof(item->body_sensation), s0->valuestring);
         }
     }
 
@@ -368,7 +340,14 @@ bool circe_timeline_load_category(circe_timeline_category_t category, circe_time
 
     circe_storage_rebuild_index_if_dirty(NULL);
 
-    circe_index_row_t rows[CIRCE_TIMELINE_MAX_ITEMS];
+    circe_index_row_t *rows = circe_buf_alloc(sizeof(circe_index_row_t) * CIRCE_TIMELINE_MAX_ITEMS);
+    if (!rows) {
+        snprintf(cache->status_msg, sizeof(cache->status_msg), "memory index needs repair");
+        cache->index_error = true;
+        s_cache = *cache;
+        return false;
+    }
+
     int row_count = 0;
     bool more = false;
     bool ok = true;
@@ -416,6 +395,7 @@ bool circe_timeline_load_category(circe_timeline_category_t category, circe_time
     }
 
     if (!ok) {
+        circe_buf_free(rows);
         snprintf(cache->status_msg, sizeof(cache->status_msg), "memory index needs repair");
         cache->index_error = true;
         s_cache = *cache;
@@ -424,18 +404,18 @@ bool circe_timeline_load_category(circe_timeline_category_t category, circe_time
 
     cache->truncated = more;
     for (int i = 0; i < row_count; i++) {
-        circe_entry_t entry;
-        if (!circe_entry_load(rows[i].id, &entry)) {
-            ESP_LOGW(TAG, "skip missing entry id=%s", rows[i].id);
-            continue;
-        }
         if (cache->count >= CIRCE_TIMELINE_MAX_ITEMS) {
             cache->truncated = true;
             break;
         }
-        item_from_entry(&rows[i], &entry, &cache->items[cache->count]);
+        if (!item_from_json_path(&rows[i], &cache->items[cache->count])) {
+            ESP_LOGW(TAG, "skip unreadable entry id=%s", rows[i].id);
+            continue;
+        }
         cache->count++;
     }
+
+    circe_buf_free(rows);
 
     if (cache->truncated) {
         snprintf(cache->status_msg, sizeof(cache->status_msg), "showing recent %d", cache->count);

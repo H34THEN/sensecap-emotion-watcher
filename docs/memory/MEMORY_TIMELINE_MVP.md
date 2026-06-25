@@ -37,6 +37,8 @@ UI flow:
 2. Post worker load
 3. `lv_async_call` completion → empty / error / browse screen
 
+Timeline category load uses **`item_from_json_path()`** (lightweight fields only, heap index rows) — not full `circe_entry_load()`. See `docs/bugs/WORKER_STACK_OVERFLOW_TIMELINE_LOAD.md`.
+
 ---
 
 ## Entry summary format
