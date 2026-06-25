@@ -97,6 +97,18 @@ static const circe_copy_row_t s_copy[] = {
     {CIRCE_PATTERN_REVIEW_EMPTY_SUB, "review.empty_sub", "Start with the body when ready."},
     {CIRCE_PATTERN_STORAGE_UNAVAILABLE_1, "storage.unavailable_1", "Storage unavailable"},
     {CIRCE_PATTERN_STORAGE_UNAVAILABLE_2, "storage.unavailable_2", "Check memory card"},
+    {CIRCE_PATTERN_PATTERNS_LOADING, "patterns.loading", "Loading patterns..."},
+    {CIRCE_PATTERN_PATTERNS_EMPTY_1, "patterns.empty_1", "Not enough memory yet"},
+    {CIRCE_PATTERN_PATTERNS_EMPTY_2, "patterns.empty_2", "Check-ins will appear here"},
+    {CIRCE_PATTERN_PATTERNS_NONE_1, "patterns.none_1", "No strong pattern yet"},
+    {CIRCE_PATTERN_PATTERNS_NONE_2, "patterns.none_2", "Keep checking in when ready"},
+    {CIRCE_PATTERN_PATTERNS_HINT, "patterns.hint", "Rotate to move through patterns"},
+    {CIRCE_PATTERN_PATTERNS_OBSERVATION_SUBLINE, "patterns.observation", "This is only an observation."},
+    {CIRCE_PATTERN_PATTERNS_GROUNDING_SUBLINE, "patterns.grounding", "Would grounding help?"},
+    {CIRCE_PATTERN_PATTERNS_ERROR_1, "patterns.error_1", "Could not load patterns"},
+    {CIRCE_PATTERN_PATTERNS_ERROR_2, "patterns.error_2", "Try diagnostics"},
+    {CIRCE_PATTERN_PATTERNS_STORAGE_1, "patterns.storage_1", "Storage is unavailable"},
+    {CIRCE_PATTERN_PATTERNS_STORAGE_2, "patterns.storage_2", "Check diagnostics"},
 };
 
 const char *circe_copy_get(circe_pattern_key_t key)

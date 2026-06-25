@@ -100,6 +100,7 @@ Intentionally local (not copy keys):
 - Reflection rule output in `circe_reflection.c`
 - Timeline category titles and empty-state lines in `circe_timeline.c`
 - Anchor rotation prompts in `circe_regulation.c` (`s_anchor_prompts[]`)
+- Pattern primary/subline text generated in `circe_patterns.c` (rule engine); shell copy uses `patterns.*` keys in `circe_copy.c`
 
 These can migrate to copy keys in a later localization pass if needed.
 
@@ -107,4 +108,4 @@ These can migrate to copy keys in a later localization pass if needed.
 
 ## Stability
 
-No new worker commands. No nested JSON parsing in save path. No SD reads in LVGL callbacks. Worker stack unchanged (16 KB).
+Copy polish phase: no new worker commands. Pattern Recognition MVP adds `CIRCE_WORKER_LOAD_PATTERNS` (separate from save path). Pattern scan uses lightweight `circe_timeline_load_pattern_context()` — not inside `run_save_entry()`. Worker stack unchanged (16 KB).

@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "circe_index.h"
+#include "circe_patterns.h"
 #include "circe_reflection.h"
 #include "circe_save.h"
 #include "circe_storage.h"
@@ -197,6 +198,24 @@ static void run_load_entry(const circe_worker_cmd_t *cmd, circe_worker_completio
              cmd->load_entry_id);
 }
 
+static void run_load_patterns(circe_worker_completion_t *out)
+{
+    out->success = circe_patterns_scan(&out->patterns);
+    if (out->patterns.storage_unavailable) {
+        out->success = false;
+        snprintf(out->summary, sizeof(out->summary), "Patterns: storage unavailable");
+    } else if (out->patterns.index_error) {
+        out->success = false;
+        snprintf(out->summary, sizeof(out->summary), "Patterns: load failed");
+    } else if (out->patterns.not_enough_entries) {
+        snprintf(out->summary, sizeof(out->summary), "Patterns: %d entries", out->patterns.total_entries);
+    } else if (out->patterns.no_patterns) {
+        snprintf(out->summary, sizeof(out->summary), "Patterns: none");
+    } else {
+        snprintf(out->summary, sizeof(out->summary), "Patterns: %d found", out->patterns.count);
+    }
+}
+
 static void run_health_check(circe_worker_completion_t *out)
 {
     circe_storage_health_check(&out->health);
@@ -248,6 +267,9 @@ static void worker_task(void *arg)
             break;
         case CIRCE_WORKER_LOAD_ENTRY:
             run_load_entry(&cmd, &result);
+            break;
+        case CIRCE_WORKER_LOAD_PATTERNS:
+            run_load_patterns(&result);
             break;
         case CIRCE_WORKER_HEALTH_CHECK:
         case CIRCE_WORKER_STORAGE_STATUS:
@@ -368,6 +390,11 @@ bool circe_worker_post_load_entry(const char *id)
     strncpy(cmd.load_entry_id, id, sizeof(cmd.load_entry_id) - 1);
     cmd.load_entry_id[sizeof(cmd.load_entry_id) - 1] = '\0';
     return post_cmd(&cmd);
+}
+
+bool circe_worker_post_load_patterns(void)
+{
+    return post_simple(CIRCE_WORKER_LOAD_PATTERNS);
 }
 
 bool circe_worker_post_health_check(void)

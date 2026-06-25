@@ -171,7 +171,11 @@ No cards, no scroll — same companion shell typography.
 
 ### Memory timeline (MVP)
 
-REVIEW → category menu (TODAY / YESTERDAY / THIS WEEK / ALL ENTRIES) → worker load → encoder browse (fixed feed lines) → VIEW / DELETE / BACK. See `docs/memory/MEMORY_TIMELINE_MVP.md`.
+REVIEW → category menu (TODAY / YESTERDAY / THIS WEEK / ALL ENTRIES / **PATTERNS**) → worker load → encoder browse or pattern rotate. See `docs/memory/MEMORY_TIMELINE_MVP.md` and `docs/patterns/PATTERN_RECOGNITION_MVP.md`.
+
+### Pattern recognition (MVP)
+
+Dedicated **PATTERNS** screen: up to 3 observations from last 16 entries (7-day window). Encoder rotates patterns; optional REGULATE when high-intensity pattern detected.
 
 ---
 

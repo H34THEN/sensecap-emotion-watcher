@@ -105,4 +105,4 @@ Patterns are generated live only. Optional JSON fields (`reflection_type = recen
 
 ## Future
 
-Full **Pattern Recognition** (Section 4) adds analytics screens, heat maps, and richer rules — not in this MVP.
+Dedicated **Pattern Recognition** screen implemented — see `docs/patterns/PATTERN_RECOGNITION_MVP.md`. Post-save reflection remains a single observation with lower thresholds (≥ 2 entries, first match wins). Full analytics / heat maps remain later phases.
