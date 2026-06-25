@@ -54,6 +54,8 @@ python3 scripts/convert_png_to_lvgl_rgb565.py docs/circe_homepage_bg.png \
 
 3. Rebuild and app-flash. See `docs/ui/HOME_STATIC_BACKGROUND_MVP.md`.
 
+Inspect preview PNGs under `firmware/circe/main/assets/` before flashing. If blue/cyan flares appear on device but not in preview, see `docs/bugs/HOME_BACKGROUND_BLUE_ARTIFACTS.md`.
+
 **Also edit for colors:**
 
 `firmware/circe/main/circe_theme.c` — palette hex values (Neon Terminal green/magenta/text)
@@ -185,6 +187,7 @@ Full file map: `docs/ui/UI_FILE_MAP.md`
 
 - `docs/ui/UI_FILE_MAP.md` — screen-by-screen file ownership
 - `docs/ui/HOME_STATIC_BACKGROUND_MVP.md` — embedded Home HUD background
+- `docs/bugs/HOME_BACKGROUND_BLUE_ARTIFACTS.md` — blue/cyan flare investigation
 - `docs/ui/SAFE_AREA_SPEC.md` — 412×412 circular zones
 - `docs/ui/SCREEN_CAPTURE_GUIDE.md` — photo checklist
 - `docs/releases/CIRCE_DAILY_TRIAL_GUIDE.md` — daily use

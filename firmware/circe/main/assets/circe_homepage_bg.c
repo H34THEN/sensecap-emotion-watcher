@@ -1,6 +1,8 @@
 /* AUTO-GENERATED FILE — DO NOT EDIT */
-/* Source: /home/heathen/Projects/sensecap-emotion-watcher/docs/circe_homepage_bg.png (1254x1254) */
+/* Source: /home/heathen/Projects/sensecap-emotion-watcher/docs/circe_homepage_bg.png (1254x1254, mode=RGB) */
 /* Target: 412x412 RGB565 LV_IMG_CF_TRUE_COLOR */
+/* Alpha: flattened onto black before RGB565 encode */
+/* RGB565 bytes: low, high (native lv_color_t LE) */
 /* Resized: yes */
 
 #include "circe_homepage_bg.h"

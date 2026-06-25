@@ -17,7 +17,8 @@ Reference for manual visual layout and styling edits. Paths are relative to `fir
 7. **`circe_regulation.c/h`** — regulation visuals
 8. **`firmware/circe/main/assets/circe_homepage_bg.c/h`** — embedded Home HUD background (generated)
 9. **`docs/circe_homepage_bg.png`** — source PNG for Home background (regenerate asset after edits)
-10. **Avoid** worker/storage files unless debugging behavior
+10. **`docs/bugs/HOME_BACKGROUND_BLUE_ARTIFACTS.md`** — alpha/RGB565 artifact investigation
+11. **Avoid** worker/storage files unless debugging behavior
 
 Workflow: `docs/ui/MANUAL_UI_EDITING_WORKFLOW.md`
 

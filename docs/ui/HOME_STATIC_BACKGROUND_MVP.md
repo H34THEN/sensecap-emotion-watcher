@@ -10,8 +10,10 @@ Embedded full-screen HUD background for the **Home** screen only.
 |----------|-------|
 | Path | `docs/circe_homepage_bg.png` |
 | Source dimensions | **1254 × 1254** px |
-| Color mode | RGB (no alpha) |
+| Color mode | RGB (IHDR color type 2 — no alpha channel in current file) |
 | Design intent | Square PNG aligned for circular Watcher display |
+
+**Alpha handling:** Even when the source PNG has no alpha, the converter always opens RGBA and composites onto **solid black** before RGB565 encode. This prevents hidden RGB data in transparent pixels from appearing if a future export includes alpha.
 
 ---
 
@@ -26,6 +28,9 @@ Embedded full-screen HUD background for the **Home** screen only.
 | Format | **RGB565** (`LV_IMG_CF_TRUE_COLOR`) |
 | Resized | **Yes** — uniform scale 1254 → 412 |
 | Center-crop | **No** (source already square) |
+| Alpha flatten | **Yes** — RGBA composited on black before encode |
+| RGB565 byte order | Native little-endian (`lo`, `hi`); matches `LV_COLOR_16_SWAP=0` |
+| Debug previews | `assets/circe_homepage_bg.preview.png`, `.rgb565_preview.png` |
 | Runtime scaling | **No** — 1:1 blit at x=0, y=0 |
 | Estimated flash cost | **~339 KB** rodata (`412×412×2`) |
 | Estimated RAM cost | **0** (const flash data; LVGL uses pointer) |
@@ -75,7 +80,7 @@ Rebuild and app-flash. Home reverts to the Neon Terminal shell (`CIRCE` / `onlin
 
 1. Edit or replace `docs/circe_homepage_bg.png` (square recommended).
 2. Install Pillow: `pip install Pillow`
-3. Regenerate:
+3. Regenerate (prints alpha investigation report; writes preview PNGs):
 
 ```bash
 python3 scripts/convert_png_to_lvgl_rgb565.py docs/circe_homepage_bg.png \
@@ -85,7 +90,10 @@ python3 scripts/convert_png_to_lvgl_rgb565.py docs/circe_homepage_bg.png \
   --symbol circe_homepage_bg
 ```
 
-4. Rebuild and app-flash.
+4. Inspect `firmware/circe/main/assets/circe_homepage_bg.preview.png` — confirm no unwanted blue/cyan flares.
+5. Rebuild and app-flash.
+
+See also `docs/bugs/HOME_BACKGROUND_BLUE_ARTIFACTS.md` if colors look wrong on hardware.
 
 Generated files are **committed** so normal builds do not require Pillow.
 
