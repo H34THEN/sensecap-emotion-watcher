@@ -30,7 +30,7 @@ User completes save flow (any `entry_mode`).
    - **Time unset:** `/sdcard/CIRCE/ENTRIES/UNSET/<id>.JSN`
    - **Legacy:** `/sdcard/CIRCE/ENTRIES/19700101/` still supported for load/review
 5. Append index line (best-effort) to `INDEX/entry_index.jsonl`
-6. **Reflection (MVP):** UI shows `CIRCE_FLOW_REFLECTION` with rule-based text from the saved entry (not persisted in JSON yet). User may REGULATE, REVIEW, or HOME.
+6. **Reflection (MVP):** UI shows `CIRCE_FLOW_REFLECTION` with rule-based text. Worker may load recent timeline entries for one gentle pattern observation before falling back to immediate entry text.
 
 7. **Memory timeline (MVP):** REVIEW opens category menu; worker loads index rows; user browses summaries and opens detail. See `docs/memory/MEMORY_TIMELINE_MVP.md`.
 

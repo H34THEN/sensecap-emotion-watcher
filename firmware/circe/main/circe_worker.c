@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "circe_index.h"
+#include "circe_reflection.h"
 #include "circe_save.h"
 #include "circe_storage.h"
 #include "circe_timeline.h"
@@ -110,7 +111,15 @@ static void run_save_entry(const circe_worker_cmd_t *cmd, circe_worker_completio
     out->entry = entry;
     if (out->success) {
         snprintf(out->summary, sizeof(out->summary), "Saved %s", out->entry_id);
+        if (cmd->success_step == CIRCE_FLOW_REFLECTION && !cmd->editing_existing) {
+            if (!circe_reflection_load_recent_context()) {
+                circe_reflection_clear_recent_context();
+            }
+        } else {
+            circe_reflection_clear_recent_context();
+        }
     } else {
+        circe_reflection_clear_recent_context();
         snprintf(out->summary, sizeof(out->summary), "Save failed: %s", circe_save_result_name(out->save_result));
     }
 }

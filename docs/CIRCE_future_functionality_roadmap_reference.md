@@ -74,7 +74,7 @@ Preferred interaction model:
 
 ## 1. Reflection Engine MVP
 
-**Status (2026-06-24):** Implemented in firmware — current-entry rule engine, post-save `CIRCE_FLOW_REFLECTION` screen. Recent history patterns deferred. See `docs/reflection/REFLECTION_ENGINE_MVP.md`.
+**Status (2026-06-24):** Implemented — current-entry rule engine, post-save `CIRCE_FLOW_REFLECTION` screen. **Recent pattern observations** added (worker-loaded last 7 days / 16 entries). See `docs/reflection/RECENT_PATTERN_REFLECTION_MVP.md`. History-only patterns deferred before this update; now live for post-save.
 
 ### Priority
 

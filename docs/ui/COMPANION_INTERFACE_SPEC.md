@@ -161,7 +161,7 @@ Future TTS **must** use the same keys as on-screen text (see [VOICE_STATE_UI.md]
 After worker save success, terminal screen `CIRCE_FLOW_REFLECTION`:
 
 - Header: `SAVED` or `SESSION SAVED`
-- Main: one rule-based observation (see `docs/reflection/REFLECTION_ENGINE_MVP.md`)
+- Main: one rule-based observation (immediate entry or recent pattern — see `docs/reflection/REFLECTION_ENGINE_MVP.md` and `docs/reflection/RECENT_PATTERN_REFLECTION_MVP.md`)
 - Subline: optional grounding offer when intensity ≥ 8
 - Actions: `REGULATE` · `REVIEW` · `HOME` (regulation: `REVIEW` · `HOME` only)
 

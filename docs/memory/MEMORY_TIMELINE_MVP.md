@@ -155,4 +155,4 @@ Local SD only. No export, sync, or cloud.
 
 ## Future
 
-Worker-safe **pattern reflection** (repeat body area / tone) is the next roadmap step after timeline validation.
+Timeline index path now feeds **recent pattern reflection** after save. Full Pattern Recognition analytics UI remains a later phase.

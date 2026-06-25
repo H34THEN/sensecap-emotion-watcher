@@ -6,7 +6,9 @@ Local, rule-based reflection shown after a successful save. No cloud, no ML, no 
 
 ## Purpose
 
-After the worker confirms a save, CIRCE shows a short observation derived from the **current entry only**. The user can dismiss to HOME, open REVIEW, or start REGULATE when intensity suggests grounding.
+After the worker confirms a save, CIRCE shows a short observation from **recent patterns** (when available) or the **current entry**. The user can dismiss to HOME, open REVIEW, or start REGULATE when intensity suggests grounding.
+
+See also: [RECENT_PATTERN_REFLECTION_MVP.md](RECENT_PATTERN_REFLECTION_MVP.md)
 
 ---
 
@@ -67,7 +69,7 @@ Fallback if generation fails or entry is null:
 
 ## Recent history
 
-**Deferred.** MVP does not scan SD or index from the UI task. Pattern reflections (repeat body area, tone trends) belong to a later roadmap phase and must use worker-safe storage if added.
+**Implemented (2026-06-24).** Worker loads up to 16 entries (THIS WEEK, or ALL if time unset) after save. Pattern engine may emit one observation; otherwise immediate rules apply. See [RECENT_PATTERN_REFLECTION_MVP.md](RECENT_PATTERN_REFLECTION_MVP.md).
 
 ---
 
