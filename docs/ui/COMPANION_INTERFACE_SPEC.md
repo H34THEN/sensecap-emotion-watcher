@@ -80,21 +80,22 @@ Not knowing is okay…   ← prompt only
 
 ## Action band
 
-### Home — slot-wheel selector (2026-06-25)
+### Home — slot-wheel selector (RC1 UI polish)
 
-Home uses a **centered rotary slot wheel** instead of a scrollable button column.
+Home uses a **single-focus rotary selector** — only the active option is shown strongly (no dimmed neighbor list).
 
 | Rotate to | Action |
 |-----------|--------|
 | BODY CHECK-IN | → Body flow |
+| REVIEW | → Memory menu (TODAY, PATTERNS, BODY MAP, …) |
+| REGULATE | → Regulation tools |
+| SETTINGS | → Appearance, time, voice |
+| DIAGNOSTICS | → Storage tools |
 | QUICK NOTE | → Quick presets |
-| REGULATE | → Grounding / breathing |
-| REVIEW | → Latest entry |
-| SETTINGS | → Settings & tools |
 
-Press to enter. Long-press opens SETTINGS from any selection.
+Press to enter (short delay allows double/triple detection). Long-press → Settings. Triple-press → Home.
 
-See [HOME_SLOT_WHEEL_MENU.md](HOME_SLOT_WHEEL_MENU.md).
+See `docs/ui/RC1_VISUAL_POLISH_PASS.md` and [HOME_SLOT_WHEEL_MENU.md](HOME_SLOT_WHEEL_MENU.md).
 
 ### Home — arc pill grid (legacy spec)
 

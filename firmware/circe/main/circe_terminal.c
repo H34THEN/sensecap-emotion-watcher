@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "circe_fonts.h"
+#include "circe_encoder.h"
 #include "circe_theme.h"
 #include "esp_log.h"
 
@@ -16,13 +17,11 @@ static const char *TAG = "circe_terminal";
 
 static circe_terminal_nav_cb_t s_on_back;
 static circe_terminal_nav_cb_t s_on_sysmenu;
+static circe_terminal_nav_cb_t s_on_triple_home;
 static void *s_nav_ctx;
 static circe_flow_step_t s_back_step = CIRCE_FLOW_HOME;
 static bool s_nav_enabled;
-static bool s_enc_pressed;
-static uint32_t s_press_start_ms;
-static uint32_t s_last_release_ms;
-static bool s_long_fired;
+static circe_encoder_state_t s_enc;
 
 static bool feed_is_live(const circe_terminal_feed_t *feed)
 {
@@ -307,16 +306,15 @@ lv_obj_t *circe_terminal_add_row(lv_obj_t *parent, const char *label, const char
     return row;
 }
 
-void circe_terminal_nav_init(circe_terminal_nav_cb_t on_back, circe_terminal_nav_cb_t on_sysmenu, void *ctx)
+void circe_terminal_nav_init(circe_terminal_nav_cb_t on_back, circe_terminal_nav_cb_t on_sysmenu,
+                             circe_terminal_nav_cb_t on_triple_home, void *ctx)
 {
     s_on_back = on_back;
     s_on_sysmenu = on_sysmenu;
+    s_on_triple_home = on_triple_home;
     s_nav_ctx = ctx;
     s_nav_enabled = true;
-    s_enc_pressed = false;
-    s_press_start_ms = 0;
-    s_last_release_ms = 0;
-    s_long_fired = false;
+    circe_encoder_state_reset(&s_enc);
 }
 
 void circe_terminal_nav_set_back_step(circe_flow_step_t step)
@@ -334,34 +332,14 @@ void circe_terminal_nav_poll(void)
     if (!s_nav_enabled) {
         return;
     }
-    lv_indev_t *indev = NULL;
-    bool pressed = false;
-    while ((indev = lv_indev_get_next(indev)) != NULL) {
-        if (indev->driver->type != LV_INDEV_TYPE_ENCODER) {
-            continue;
-        }
-        pressed = (indev->proc.state == LV_INDEV_STATE_PRESSED);
-        break;
-    }
-    uint32_t now = lv_tick_get();
-    if (pressed && !s_enc_pressed) {
-        s_enc_pressed = true;
-        s_press_start_ms = now;
-        s_long_fired = false;
-    } else if (!pressed && s_enc_pressed) {
-        s_enc_pressed = false;
-        if (!s_long_fired && s_last_release_ms != 0 && (now - s_last_release_ms) < DOUBLE_PRESS_MS) {
-            if (s_on_back) {
-                s_on_back(s_nav_ctx);
-            }
-            s_last_release_ms = 0;
-        } else {
-            s_last_release_ms = now;
-        }
-    } else if (pressed && s_enc_pressed && !s_long_fired && (now - s_press_start_ms) >= LONG_PRESS_MS) {
-        s_long_fired = true;
-        if (s_on_sysmenu) {
-            s_on_sysmenu(s_nav_ctx);
-        }
+    int diff = circe_encoder_read_diff();
+    bool pressed = circe_encoder_read_pressed();
+    int action = circe_encoder_poll(&s_enc, diff, pressed);
+    if (action == CIRCE_ENC_ACTION_TRIPLE && s_on_triple_home) {
+        s_on_triple_home(s_nav_ctx);
+    } else if (action == CIRCE_ENC_ACTION_DOUBLE && s_on_back) {
+        s_on_back(s_nav_ctx);
+    } else if (action == CIRCE_ENC_ACTION_LONG && s_on_sysmenu) {
+        s_on_sysmenu(s_nav_ctx);
     }
 }

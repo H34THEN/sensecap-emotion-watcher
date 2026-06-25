@@ -8,11 +8,14 @@
 #include "circe_body_map.h"
 #include "circe_copy.h"
 #include "circe_daily.h"
+#include "circe_encoder.h"
 #include "circe_entry_modes.h"
 #include "circe_fonts.h"
 #include "circe_hud.h"
 #include "circe_index.h"
 #include "circe_save.h"
+#include "circe_selector.h"
+#include "circe_status_banner.h"
 #include "circe_storage.h"
 #include "circe_strand_cache.h"
 #include "circe_color_picker.h"
@@ -43,6 +46,56 @@
 
 static const char *TAG = "circe_ui";
 
+static const circe_selector_item_t s_memory_menu_items[] = {
+    {"TODAY", "mem_today"},
+    {"YESTERDAY", "mem_yesterday"},
+    {"THIS WEEK", "mem_week"},
+    {"ALL ENTRIES", "mem_all"},
+    {"PATTERNS", "mem_patterns"},
+    {"BODY MAP", "mem_body_map"},
+    {"BACK", "nav:0"},
+};
+
+static const circe_selector_item_t s_settings_menu_items[] = {
+    {"APPEARANCE", "more_appearance"},
+    {"TIME", "more_time"},
+    {"VOICE CUES", "more_voice"},
+    {"BACK", "nav:0"},
+};
+
+static const circe_selector_item_t s_regulation_menu_items[] = {
+    {"BREATHING", "reg_breathing"},
+    {"BODY ANCHOR", "reg_anchor"},
+    {"5-4-3-2-1", "reg_54321"},
+    {"SENSORY RESET", "reg_sensory"},
+    {"BILATERAL TAP", "reg_bilateral"},
+    {"BACK", "nav:0"},
+};
+
+static const circe_selector_item_t s_voice_menu_items[] = {
+    {"SOFT", "voice_soft"},
+    {"TEST TONE", "voice_test"},
+    {"OFF", "voice_off"},
+    {"BACK", "nav:31"},
+};
+
+static const circe_selector_item_t s_diagnostics_menu_items[] = {
+    {"TEST SAVE", "test_save"},
+    {"RUN PROBE", "storage_probe"},
+    {"REINIT STORAGE", "storage_reinit"},
+    {"REBUILD INDEX", "rebuild"},
+    {"SELF TEST", "selftest"},
+    {"BACK", "nav:0"},
+};
+
+#define MEMORY_MENU_COUNT   (int)(sizeof(s_memory_menu_items) / sizeof(s_memory_menu_items[0]))
+#define SETTINGS_MENU_COUNT (int)(sizeof(s_settings_menu_items) / sizeof(s_settings_menu_items[0]))
+#define REG_MENU_COUNT      (int)(sizeof(s_regulation_menu_items) / sizeof(s_regulation_menu_items[0]))
+#define VOICE_MENU_COUNT    (int)(sizeof(s_voice_menu_items) / sizeof(s_voice_menu_items[0]))
+#define DIAG_MENU_COUNT     (int)(sizeof(s_diagnostics_menu_items) / sizeof(s_diagnostics_menu_items[0]))
+
+static circe_encoder_state_t s_triple_enc;
+
 static circe_conversation_engine_t *s_engine = NULL;
 static lv_obj_t *s_scr = NULL;
 static circe_hud_t s_hud;
@@ -70,6 +123,9 @@ static circe_time_picker_t s_time_picker;
 static circe_color_picker_t s_color_picker;
 static circe_regulation_result_t s_regulation_result;
 static circe_home_wheel_t s_home_wheel;
+static circe_selector_t s_selector;
+static circe_selector_item_t s_dynamic_selector_items[CIRCE_SELECTOR_MAX_ITEMS];
+static char s_dynamic_selector_ids[CIRCE_SELECTOR_MAX_ITEMS][48];
 static circe_reflection_t s_reflection;
 static circe_photo_result_t s_photo_result;
 static circe_memory_browser_t s_memory_browser;
@@ -90,8 +146,93 @@ static bool s_delete_from_memory;
 static circe_storage_health_t s_diag_health;
 static bool s_diag_health_valid;
 
+static void dispatch_action(const char *id);
 static void btn_event_cb(lv_event_t *e);
-static void refresh_strand_arc_from_blocks(circe_strand_block_t *blocks, int count);
+static void go_home_safe(void);
+static void handle_selector_action(int enc_action);
+static void ui_show_status_key(circe_pattern_key_t key);
+static void ui_show_status_timed(circe_pattern_key_t key, uint32_t ms);
+static void setup_selector_menu(const char *title, const char *status_line, circe_flow_step_t back_step,
+                                const circe_selector_item_t *items, int count);
+
+static int build_body_area_selector(circe_flow_step_t back_step)
+{
+    int n = 0;
+    for (int i = 0; i < circe_body_area_count && n < CIRCE_SELECTOR_MAX_ITEMS - 1; i++) {
+        s_dynamic_selector_items[n].label = circe_body_areas[i];
+        snprintf(s_dynamic_selector_ids[n], sizeof(s_dynamic_selector_ids[n]), "area:%s", circe_body_areas[i]);
+        s_dynamic_selector_items[n].action_id = s_dynamic_selector_ids[n];
+        n++;
+    }
+    s_dynamic_selector_items[n].label = circe_copy_get(CIRCE_PATTERN_NAV_BACK);
+    snprintf(s_dynamic_selector_ids[n], sizeof(s_dynamic_selector_ids[n]), "nav:%d", (int)back_step);
+    s_dynamic_selector_items[n].action_id = s_dynamic_selector_ids[n];
+    return n + 1;
+}
+
+static int build_body_sensation_selector(circe_flow_step_t back_step)
+{
+    int n = 0;
+    for (int i = 0; i < circe_body_sensation_count && n < CIRCE_SELECTOR_MAX_ITEMS - 1; i++) {
+        s_dynamic_selector_items[n].label = circe_body_sensations[i];
+        snprintf(s_dynamic_selector_ids[n], sizeof(s_dynamic_selector_ids[n]), "sen:%s", circe_body_sensations[i]);
+        s_dynamic_selector_items[n].action_id = s_dynamic_selector_ids[n];
+        n++;
+    }
+    s_dynamic_selector_items[n].label = circe_copy_get(CIRCE_PATTERN_NAV_BACK);
+    snprintf(s_dynamic_selector_ids[n], sizeof(s_dynamic_selector_ids[n]), "nav:%d", (int)back_step);
+    s_dynamic_selector_items[n].action_id = s_dynamic_selector_ids[n];
+    return n + 1;
+}
+
+static int build_tone_selector(circe_flow_step_t back_step)
+{
+    int n = 0;
+    for (int i = 0; i < circe_emotion_tone_count && n < CIRCE_SELECTOR_MAX_ITEMS - 2; i++) {
+        s_dynamic_selector_items[n].label = circe_emotion_tones[i].label;
+        snprintf(s_dynamic_selector_ids[n], sizeof(s_dynamic_selector_ids[n]), "tone:%d", i);
+        s_dynamic_selector_items[n].action_id = s_dynamic_selector_ids[n];
+        n++;
+    }
+    s_dynamic_selector_items[n].label = "SKIP";
+    s_dynamic_selector_items[n].action_id = "tone_skip";
+    n++;
+    s_dynamic_selector_items[n].label = circe_copy_get(CIRCE_PATTERN_NAV_BACK);
+    snprintf(s_dynamic_selector_ids[n], sizeof(s_dynamic_selector_ids[n]), "nav:%d", (int)back_step);
+    s_dynamic_selector_items[n].action_id = s_dynamic_selector_ids[n];
+    return n + 1;
+}
+
+static int build_theme_selector(void)
+{
+    int n = circe_theme_count();
+    if (n > CIRCE_SELECTOR_MAX_ITEMS - 1) {
+        n = CIRCE_SELECTOR_MAX_ITEMS - 1;
+    }
+    for (int i = 0; i < n; i++) {
+        const circe_theme_palette_t *p = circe_theme_get_palette_by_id((circe_theme_id_t)i);
+        s_dynamic_selector_items[i].label = p->display_name;
+        snprintf(s_dynamic_selector_ids[i], sizeof(s_dynamic_selector_ids[i]), "theme_pick:%d", i);
+        s_dynamic_selector_items[i].action_id = s_dynamic_selector_ids[i];
+    }
+    s_dynamic_selector_items[n].label = circe_copy_get(CIRCE_PATTERN_NAV_BACK);
+    s_dynamic_selector_items[n].action_id = "nav:31";
+    return n + 1;
+}
+
+static int build_quick_selector(void)
+{
+    int n = 0;
+    for (int i = 0; i < CIRCE_QUICK_PRESET_COUNT && n < CIRCE_SELECTOR_MAX_ITEMS - 1; i++) {
+        s_dynamic_selector_items[n].label = circe_quick_presets[i].label;
+        snprintf(s_dynamic_selector_ids[n], sizeof(s_dynamic_selector_ids[n]), "quick:%d", i);
+        s_dynamic_selector_items[n].action_id = s_dynamic_selector_ids[n];
+        n++;
+    }
+    s_dynamic_selector_items[n].label = circe_copy_get(CIRCE_PATTERN_NAV_BACK);
+    s_dynamic_selector_items[n].action_id = "nav:0";
+    return n + 1;
+}
 
 static void strand_note_saved_color(const char *color_hex)
 {
@@ -370,7 +511,7 @@ static void apply_default_home_feed(void)
     snprintf(feed_line, sizeof(feed_line), "> %s", circe_copy_get(CIRCE_PATTERN_HOME_FEED_READY));
     const char *lines[] = {feed_line};
     circe_terminal_feed_set(&s_feed, lines, 1);
-    circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_HOME_WHEEL_HINT));
+    circe_hud_set_subline(&s_hud, "");
 }
 
 static void apply_daily_companion_feed(const circe_daily_summary_t *summary)
@@ -392,7 +533,7 @@ static void apply_daily_companion_feed(const circe_daily_summary_t *summary)
         const char *lines[] = {l1};
         circe_terminal_feed_set(&s_feed, lines, 1);
     }
-    circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_HOME_WHEEL_HINT));
+    circe_hud_set_subline(&s_hud, "");
 }
 
 static bool post_load_daily_companion(void)
@@ -417,7 +558,9 @@ static void clear_content(void)
     circe_color_picker_destroy(&s_color_picker);
     circe_regulation_destroy();
     circe_home_wheel_destroy(&s_home_wheel);
+    circe_selector_destroy(&s_selector);
     circe_memory_browser_destroy(&s_memory_browser);
+    circe_encoder_state_reset(&s_triple_enc);
     s_pattern_browser.active = false;
     s_pattern_browser.count = 0;
     s_pattern_browser.selected = 0;
@@ -590,12 +733,23 @@ static void home_wheel_open_selected(void)
         open_memory_menu();
     } else if (strcmp(id, "more") == 0) {
         go_step(CIRCE_FLOW_MORE);
+    } else if (strcmp(id, "diagnostics") == 0) {
+        go_step(CIRCE_FLOW_DIAGNOSTICS);
     }
 }
 
 static void nav_timer_cb(lv_timer_t *timer)
 {
     (void)timer;
+    if (s_engine && s_engine->step != CIRCE_FLOW_HOME && !s_home_wheel.active && !s_selector.active &&
+        !s_time_picker.active) {
+        int triple_action =
+            circe_encoder_poll(&s_triple_enc, circe_encoder_read_diff(), circe_encoder_read_pressed());
+        if (triple_action == CIRCE_ENC_ACTION_TRIPLE) {
+            go_home_safe();
+            return;
+        }
+    }
     if (s_time_picker.active) {
         circe_time_picker_poll(&s_time_picker, time_picker_done, &s_hud);
     } else if (s_home_wheel.active) {
@@ -605,7 +759,13 @@ static void nav_timer_cb(lv_timer_t *timer)
             home_wheel_open_selected();
         } else if (action == CIRCE_HOME_WHEEL_ACTION_MORE) {
             go_step(CIRCE_FLOW_MORE);
+        } else if (action == CIRCE_HOME_WHEEL_ACTION_DOUBLE) {
+            /* no-op on home */
+        } else if (action == CIRCE_HOME_WHEEL_ACTION_TRIPLE) {
+            go_home_safe();
         }
+    } else if (s_selector.active) {
+        handle_selector_action(circe_selector_poll(&s_selector));
     } else if (s_pattern_browser.active) {
         int prev = s_pattern_browser.selected;
         pattern_browser_poll();
@@ -673,9 +833,65 @@ static void add_back_btn(circe_flow_step_t target)
     add_btn(circe_copy_get(CIRCE_PATTERN_NAV_BACK), alloc_btn_id("nav:%d", (int)target));
 }
 
+static void ui_show_status_key(circe_pattern_key_t key)
+{
+    circe_status_banner_show(circe_copy_get(key));
+    circe_hud_set_subline(&s_hud, "");
+}
+
+static void ui_show_status_timed(circe_pattern_key_t key, uint32_t ms)
+{
+    circe_status_banner_show_timed(circe_copy_get(key), ms);
+    circe_hud_set_subline(&s_hud, "");
+}
+
+static void go_home_safe(void)
+{
+    if (circe_worker_is_busy()) {
+        ui_show_status_key(CIRCE_PATTERN_STATUS_LOADING_BANNER);
+    }
+    circe_regulation_destroy();
+    circe_status_banner_hide();
+    s_memory_context = false;
+    s_delete_from_memory = false;
+    go_step(CIRCE_FLOW_HOME);
+}
+
+static void setup_selector_menu(const char *title, const char *status_line, circe_flow_step_t back_step,
+                                const circe_selector_item_t *items, int count)
+{
+    setup_terminal_shell(back_step, status_line ? status_line : title);
+    show_terminal_prompt_text(title);
+    s_nav_back_step = back_step;
+    circe_terminal_nav_enable(false);
+    circe_selector_create(&s_selector, s_content, title, items, count, 0);
+}
+
+static void handle_selector_action(int enc_action)
+{
+    if (enc_action == CIRCE_SELECTOR_ACTION_TRIPLE) {
+        go_home_safe();
+        return;
+    }
+    if (enc_action == CIRCE_SELECTOR_ACTION_DOUBLE) {
+        go_step(s_nav_back_step);
+        return;
+    }
+    if (enc_action == CIRCE_SELECTOR_ACTION_LONG) {
+        go_step(CIRCE_FLOW_MORE);
+        return;
+    }
+    if (enc_action == CIRCE_SELECTOR_ACTION_SELECT) {
+        const char *id = circe_selector_selected_action(&s_selector);
+        if (id && id[0]) {
+            dispatch_action(id);
+        }
+    }
+}
+
 static void worker_busy_notice(void)
 {
-    circe_hud_set_subline(&s_hud, "Please wait...");
+    ui_show_status_key(CIRCE_PATTERN_STATUS_LOADING_BANNER);
 }
 
 static bool enqueue_save_async(circe_flow_step_t on_success, int msg_key, bool quick_subline)
@@ -687,10 +903,11 @@ static bool enqueue_save_async(circe_flow_step_t on_success, int msg_key, bool q
         worker_busy_notice();
         return false;
     }
-    circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_STATUS_SAVING));
+    ui_show_status_key(CIRCE_PATTERN_STATUS_SAVING_BANNER);
     if (!circe_worker_post_save_entry(&s_engine->draft, s_engine->editing_existing, on_success, msg_key,
                                       quick_subline)) {
-        circe_hud_set_subline(&s_hud, "Save queue failed");
+        circe_status_banner_hide();
+        ui_show_status_key(CIRCE_PATTERN_STATUS_LOADING_BANNER);
         return false;
     }
     return true;
@@ -705,12 +922,13 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
 
     switch (c->type) {
     case CIRCE_WORKER_TEST_SAVE:
+        ui_show_status_timed(CIRCE_PATTERN_STATUS_ENTRY_SAVED, 1500);
         circe_hud_set_subline(&s_hud, c->summary);
         go_step(CIRCE_FLOW_DIAGNOSTICS);
         break;
     case CIRCE_WORKER_SAVE_ENTRY:
         if (circe_save_result_is_success(c->save_result)) {
-            show_save_success_notice(c->save_result);
+            ui_show_status_timed(CIRCE_PATTERN_STATUS_ENTRY_SAVED, 1200);
             strncpy(s_review_id, c->entry_id, sizeof(s_review_id) - 1);
             s_review_id[sizeof(s_review_id) - 1] = '\0';
             s_engine->editing_existing = false;
@@ -856,7 +1074,7 @@ static bool worker_post_or_busy(bool (*post_fn)(void))
 
 static bool post_test_save(void)
 {
-    circe_hud_set_subline(&s_hud, "Running test...");
+    ui_show_status_key(CIRCE_PATTERN_STATUS_SAVING_BANNER);
     return circe_worker_post_test_save();
 }
 
@@ -888,7 +1106,7 @@ static bool post_load_review(void)
 static bool post_load_timeline(circe_timeline_category_t category)
 {
     s_memory_category = category;
-    circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_STATUS_LOADING_MEMORY));
+    ui_show_status_key(CIRCE_PATTERN_STATUS_LOADING_BANNER);
     return circe_worker_post_load_timeline(category);
 }
 
@@ -924,13 +1142,13 @@ static bool post_timeline_all(void)
 
 static bool post_load_patterns(void)
 {
-    circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_PATTERNS_LOADING));
+    ui_show_status_key(CIRCE_PATTERN_PATTERNS_LOADING);
     return circe_worker_post_load_patterns();
 }
 
 static bool post_load_body_map(void)
 {
-    circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_BODY_MAP_LOADING));
+    ui_show_status_key(CIRCE_PATTERN_BODY_MAP_LOADING);
     return circe_worker_post_load_body_map();
 }
 
@@ -1118,7 +1336,11 @@ static lv_obj_t *add_theme_row(circe_theme_id_t id)
 
 static void btn_event_cb(lv_event_t *e)
 {
-    const char *id = (const char *)lv_event_get_user_data(e);
+    dispatch_action((const char *)lv_event_get_user_data(e));
+}
+
+static void dispatch_action(const char *id)
+{
     if (!id || !s_engine) {
         return;
     }
@@ -1189,12 +1411,38 @@ static void btn_event_cb(lv_event_t *e)
         go_step(CIRCE_FLOW_VOICE_CUES);
     } else if (strcmp(id, "voice_off") == 0) {
         circe_voice_set_mode(CIRCE_VOICE_MODE_OFF);
-        circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_VOICE_DISABLED));
+        ui_show_status_timed(CIRCE_PATTERN_VOICE_CUES_OFF, 1200);
         go_step(CIRCE_FLOW_VOICE_CUES);
     } else if (strcmp(id, "voice_soft") == 0) {
         circe_voice_set_mode(CIRCE_VOICE_MODE_SOFT);
-        circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_VOICE_ENABLED));
+        if (!circe_voice_is_available()) {
+            ui_show_status_timed(CIRCE_PATTERN_STATUS_AUDIO_UNAVAILABLE, 2000);
+        } else {
+            ui_show_status_timed(CIRCE_PATTERN_VOICE_ENABLED, 1200);
+        }
         go_step(CIRCE_FLOW_VOICE_CUES);
+    } else if (strcmp(id, "voice_test") == 0) {
+        if (circe_voice_get_mode() != CIRCE_VOICE_MODE_SOFT) {
+            ui_show_status_timed(CIRCE_PATTERN_VOICE_CUES_OFF, 1500);
+        } else {
+            ui_show_status_key(CIRCE_PATTERN_VOICE_PLAYING_TONE);
+            if (circe_voice_play_test_tone()) {
+                ui_show_status_timed(CIRCE_PATTERN_VOICE_TONE_SENT, 1200);
+            } else {
+                ui_show_status_timed(CIRCE_PATTERN_STATUS_AUDIO_UNAVAILABLE, 2000);
+            }
+        }
+        go_step(CIRCE_FLOW_VOICE_CUES);
+    } else if (strncmp(id, "theme_pick:", 11) == 0) {
+        int idx = atoi(id + 11);
+        if (idx >= 0 && idx < circe_theme_count()) {
+            s_appearance_pick = (circe_theme_id_t)idx;
+            circe_theme_preview(s_appearance_pick);
+            circe_theme_commit_preview();
+            apply_theme_to_shell();
+            ui_show_status_timed(CIRCE_PATTERN_APPEARANCE_APPLIED, 1200);
+        }
+        go_step(CIRCE_FLOW_MORE);
     } else if (strcmp(id, "appearance_apply") == 0) {
         circe_theme_commit_preview();
         apply_theme_to_shell();
@@ -1384,17 +1632,24 @@ void circe_ui_apply_boot_strand(void)
     lv_obj_clean(s_strand_arc);
 }
 
+static void terminal_nav_triple_home(void *ctx)
+{
+    (void)ctx;
+    go_home_safe();
+}
+
 void circe_ui_init(void)
 {
     setup_encoder_group();
     circe_worker_init(circe_ui_worker_done, NULL);
-    circe_terminal_nav_init(terminal_nav_back, terminal_nav_sysmenu, NULL);
+    circe_terminal_nav_init(terminal_nav_back, terminal_nav_sysmenu, terminal_nav_triple_home, NULL);
 
     s_scr = lv_obj_create(NULL);
     lv_scr_load(s_scr);
     circe_theme_apply_screen(s_scr);
 
     circe_hud_create(s_scr, &s_hud);
+    circe_status_banner_init(s_scr);
     s_content = circe_hud_actions(&s_hud);
     s_strand_arc = circe_hud_strand_layer(&s_hud);
 
@@ -1437,53 +1692,26 @@ void circe_ui_show_step(circe_flow_step_t step)
     }
 
     case CIRCE_FLOW_MORE:
-        setup_terminal_shell(CIRCE_FLOW_HOME, "settings");
-        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_MORE_MENU));
-        s_nav_back_step = CIRCE_FLOW_HOME;
-        add_btn(circe_copy_get(CIRCE_PATTERN_MORE_APPEARANCE), "more_appearance");
-        add_btn("TIME", "more_time");
-        add_btn(circe_copy_get(CIRCE_PATTERN_VOICE_CUES), "more_voice");
-        add_btn(circe_copy_get(CIRCE_PATTERN_MORE_STORAGE), "more_storage");
-        add_back_btn(CIRCE_FLOW_HOME);
-        focus_first_obj(s_first_row);
+        setup_selector_menu("SETTINGS", "settings", CIRCE_FLOW_HOME, s_settings_menu_items, SETTINGS_MENU_COUNT);
         break;
 
     case CIRCE_FLOW_APPEARANCE:
-        setup_terminal_shell(CIRCE_FLOW_MORE, "appearance");
-        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_APPEARANCE_PROMPT));
-        s_nav_back_step = CIRCE_FLOW_MORE;
-        create_scroll_panel();
-        for (int i = 0; i < circe_theme_count(); i++) {
-            add_theme_row((circe_theme_id_t)i);
-        }
-        add_btn("APPLY", "appearance_apply");
-        add_btn(circe_copy_get(CIRCE_PATTERN_NAV_CANCEL), "appearance_cancel");
-        add_back_btn(CIRCE_FLOW_MORE);
-        focus_first_obj(s_first_row);
+        setup_selector_menu("APPEARANCE", circe_copy_get(CIRCE_PATTERN_APPEARANCE_PROMPT), CIRCE_FLOW_MORE,
+                            s_dynamic_selector_items, build_theme_selector());
         break;
 
-    case CIRCE_FLOW_BODY_AREA:
-        setup_terminal_shell(s_engine->editing_existing ? CIRCE_FLOW_EDIT : CIRCE_FLOW_HOME, "body check-in");
-        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_BODY_AREA_PROMPT));
-        s_nav_back_step = s_engine->editing_existing ? CIRCE_FLOW_EDIT : CIRCE_FLOW_HOME;
-        create_scroll_panel();
-        for (int i = 0; i < circe_body_area_count; i++) {
-            add_btn(circe_body_areas[i], alloc_btn_id("area:%s", circe_body_areas[i]));
-        }
-        add_back_btn(s_nav_back_step);
-        focus_first_obj(s_first_row);
+    case CIRCE_FLOW_BODY_AREA: {
+        circe_flow_step_t back = s_engine->editing_existing ? CIRCE_FLOW_EDIT : CIRCE_FLOW_HOME;
+        setup_terminal_shell(back, "body check-in");
+        setup_selector_menu("BODY", circe_copy_get(CIRCE_PATTERN_BODY_AREA_PROMPT), back, s_dynamic_selector_items,
+                            build_body_area_selector(back));
         break;
+    }
 
     case CIRCE_FLOW_BODY_SENSATION:
         setup_terminal_shell(CIRCE_FLOW_BODY_AREA, "body sensation");
-        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_BODY_SENSATION_PROMPT));
-        s_nav_back_step = CIRCE_FLOW_BODY_AREA;
-        create_scroll_panel();
-        for (int i = 0; i < circe_body_sensation_count; i++) {
-            add_btn(circe_body_sensations[i], alloc_btn_id("sen:%s", circe_body_sensations[i]));
-        }
-        add_back_btn(CIRCE_FLOW_BODY_AREA);
-        focus_first_obj(s_first_row);
+        setup_selector_menu("SENSATION", circe_copy_get(CIRCE_PATTERN_BODY_SENSATION_PROMPT), CIRCE_FLOW_BODY_AREA,
+                            s_dynamic_selector_items, build_body_sensation_selector(CIRCE_FLOW_BODY_AREA));
         break;
 
     case CIRCE_FLOW_INTENSITY:
@@ -1515,19 +1743,14 @@ void circe_ui_show_step(circe_flow_step_t step)
         focus_first_obj(s_first_row);
         break;
 
-    case CIRCE_FLOW_EMOTION_TONE:
-        setup_terminal_shell(s_engine->editing_existing ? CIRCE_FLOW_EDIT : CIRCE_FLOW_BODY_ADD_MORE, "emotional tone");
-        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_TONE_PROMPT));
+    case CIRCE_FLOW_EMOTION_TONE: {
+        circe_flow_step_t back = s_engine->editing_existing ? CIRCE_FLOW_EDIT : CIRCE_FLOW_BODY_ADD_MORE;
+        setup_terminal_shell(back, "emotional tone");
+        setup_selector_menu("TONE", circe_copy_get(CIRCE_PATTERN_TONE_PROMPT), back, s_dynamic_selector_items,
+                            build_tone_selector(back));
         circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_TONE_ROUGH_OK));
-        s_nav_back_step = s_engine->editing_existing ? CIRCE_FLOW_EDIT : CIRCE_FLOW_BODY_ADD_MORE;
-        create_scroll_panel();
-        for (int i = 0; i < circe_emotion_tone_count; i++) {
-            add_btn(circe_emotion_tones[i].label, alloc_btn_id("tone:%d", i));
-        }
-        add_btn("SKIP", "tone_skip");
-        add_back_btn(s_nav_back_step);
-        focus_first_obj(s_first_row);
         break;
+    }
 
     case CIRCE_FLOW_COLOR_PICKER:
         s_nav_back_step = s_engine->editing_existing ? CIRCE_FLOW_EDIT : CIRCE_FLOW_EMOTION_TONE;
@@ -1691,39 +1914,13 @@ void circe_ui_show_step(circe_flow_step_t step)
     }
 
     case CIRCE_FLOW_VOICE_CUES:
-        setup_terminal_shell(CIRCE_FLOW_MORE, "voice cues");
-        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_VOICE_TITLE));
-        s_nav_back_step = CIRCE_FLOW_MORE;
-        if (!circe_voice_is_available()) {
-            circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_VOICE_UNAVAILABLE));
-            add_back_btn(CIRCE_FLOW_MORE);
-        } else {
-            circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_VOICE_CUES));
-            if (circe_voice_get_mode() == CIRCE_VOICE_MODE_SOFT) {
-                add_btn(circe_copy_get(CIRCE_PATTERN_VOICE_SOFT), "voice_soft");
-                add_btn(circe_copy_get(CIRCE_PATTERN_VOICE_OFF), "voice_off");
-            } else {
-                add_btn(circe_copy_get(CIRCE_PATTERN_VOICE_OFF), "voice_off");
-                add_btn(circe_copy_get(CIRCE_PATTERN_VOICE_SOFT), "voice_soft");
-            }
-            add_back_btn(CIRCE_FLOW_MORE);
-        }
-        focus_first_obj(s_first_row);
+        setup_selector_menu("VOICE CUES", circe_copy_get(CIRCE_PATTERN_VOICE_TITLE), CIRCE_FLOW_MORE,
+                            s_voice_menu_items, VOICE_MENU_COUNT);
         break;
 
     case CIRCE_FLOW_MEMORY_MENU:
-        setup_terminal_shell(CIRCE_FLOW_HOME, "memory");
-        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_MEMORY_MENU_PROMPT));
-        s_nav_back_step = CIRCE_FLOW_HOME;
-        create_scroll_panel();
-        add_btn("TODAY", "mem_today");
-        add_btn("YESTERDAY", "mem_yesterday");
-        add_btn("THIS WEEK", "mem_week");
-        add_btn("ALL ENTRIES", "mem_all");
-        add_btn("PATTERNS", "mem_patterns");
-        add_btn("BODY MAP", "mem_body_map");
-        add_back_btn(CIRCE_FLOW_HOME);
-        focus_first_obj(s_first_row);
+        setup_selector_menu("REVIEW", circe_copy_get(CIRCE_PATTERN_MEMORY_MENU_PROMPT), CIRCE_FLOW_HOME,
+                            s_memory_menu_items, MEMORY_MENU_COUNT);
         break;
 
     case CIRCE_FLOW_PATTERNS:
@@ -1930,39 +2127,24 @@ void circe_ui_show_step(circe_flow_step_t step)
         break;
 
     case CIRCE_FLOW_QUICK_PICK:
-        setup_terminal_shell(CIRCE_FLOW_HOME, "quick note");
-        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_QUICK_ONE_TAP));
-        s_nav_back_step = CIRCE_FLOW_HOME;
-        create_scroll_panel();
-        for (int i = 0; i < CIRCE_QUICK_PRESET_COUNT; i++) {
-            add_btn(circe_quick_presets[i].label, alloc_btn_id("quick:%d", i));
-        }
-        add_back_btn(CIRCE_FLOW_HOME);
-        focus_first_obj(s_first_row);
+        setup_selector_menu("QUICK NOTE", circe_copy_get(CIRCE_PATTERN_QUICK_ONE_TAP), CIRCE_FLOW_HOME,
+                            s_dynamic_selector_items, build_quick_selector());
         break;
 
     case CIRCE_FLOW_GROUNDING:
-        setup_terminal_shell(CIRCE_FLOW_HOME, "grounding");
+        setup_terminal_shell(CIRCE_FLOW_HOME, "regulate");
         {
             char l1[64];
             char l2[64];
-            char l3[64];
             snprintf(l1, sizeof(l1), "> %s", circe_copy_get(CIRCE_PATTERN_REG_GROUNDING_1));
             snprintf(l2, sizeof(l2), "> %s", circe_copy_get(CIRCE_PATTERN_REG_GROUNDING_2));
-            snprintf(l3, sizeof(l3), "> %s", circe_copy_get(CIRCE_PATTERN_REG_GROUNDING_3));
-            const char *lines[] = {l1, l2, l3};
-            circe_terminal_feed_set(&s_feed, lines, 3);
+            const char *lines[] = {l1, l2};
+            circe_terminal_feed_set(&s_feed, lines, 2);
             circe_terminal_feed_show_cursor(&s_feed, true);
         }
         s_nav_back_step = CIRCE_FLOW_HOME;
-        create_scroll_panel();
-        add_btn("BREATHING", "reg_breathing");
-        add_btn("BODY ANCHOR", "reg_anchor");
-        add_btn(circe_copy_get(CIRCE_PATTERN_REG_MENU_54321), "reg_54321");
-        add_btn(circe_copy_get(CIRCE_PATTERN_REG_MENU_SENSORY), "reg_sensory");
-        add_btn(circe_copy_get(CIRCE_PATTERN_REG_MENU_BILATERAL), "reg_bilateral");
-        add_back_btn(CIRCE_FLOW_HOME);
-        focus_first_obj(s_first_row);
+        circe_terminal_nav_enable(false);
+        circe_selector_create(&s_selector, s_content, "REGULATE", s_regulation_menu_items, REG_MENU_COUNT, 0);
         break;
 
     case CIRCE_FLOW_BREATHING:
@@ -2066,17 +2248,11 @@ void circe_ui_show_step(circe_flow_step_t step)
     }
 
     case CIRCE_FLOW_DIAGNOSTICS: {
-        setup_terminal_shell(CIRCE_FLOW_MORE, "storage diagnostics");
-        s_nav_back_step = CIRCE_FLOW_MORE;
-        create_scroll_panel();
+        setup_terminal_shell(CIRCE_FLOW_HOME, "diagnostics");
         diagnostics_show_health_feed();
-        add_btn("TEST SAVE", "test_save");
-        add_btn("RUN PROBE", "storage_probe");
-        add_btn("REINIT STORAGE", "storage_reinit");
-        add_btn("REBUILD INDEX", "rebuild");
-        add_btn("SELF TEST", "selftest");
-        add_btn("HOME", "home");
-        focus_first_obj(s_first_row);
+        s_nav_back_step = CIRCE_FLOW_HOME;
+        circe_terminal_nav_enable(false);
+        circe_selector_create(&s_selector, s_content, "DIAGNOSTICS", s_diagnostics_menu_items, DIAG_MENU_COUNT, 0);
         worker_post_or_busy(post_health_check);
         break;
     }

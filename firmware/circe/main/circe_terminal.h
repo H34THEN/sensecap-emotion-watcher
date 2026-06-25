@@ -30,7 +30,8 @@ void circe_terminal_style_row_label(lv_obj_t *lbl, bool focused);
 lv_obj_t *circe_terminal_add_row(lv_obj_t *parent, const char *label, const char *action_id, lv_event_cb_t cb,
                                  lv_group_t *group, int stack_index);
 
-void circe_terminal_nav_init(circe_terminal_nav_cb_t on_back, circe_terminal_nav_cb_t on_sysmenu, void *ctx);
+void circe_terminal_nav_init(circe_terminal_nav_cb_t on_back, circe_terminal_nav_cb_t on_sysmenu,
+                             circe_terminal_nav_cb_t on_triple_home, void *ctx);
 void circe_terminal_nav_set_back_step(circe_flow_step_t step);
 void circe_terminal_nav_enable(bool enabled);
 void circe_terminal_nav_poll(void);

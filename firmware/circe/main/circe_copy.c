@@ -174,6 +174,22 @@ static const circe_copy_row_t s_copy[] = {
     {CIRCE_PATTERN_BODY_MAP_ERROR_2, "body_map.error_2", "Try diagnostics."},
     {CIRCE_PATTERN_BODY_MAP_STORAGE_1, "body_map.storage_1", "Memory unavailable."},
     {CIRCE_PATTERN_BODY_MAP_STORAGE_2, "body_map.storage_2", "Check diagnostics."},
+    {CIRCE_PATTERN_NAV_ROTATE_CHOOSE, "nav.rotate_choose", "rotate choose"},
+    {CIRCE_PATTERN_NAV_PRESS_SELECT, "nav.press_select", "press enter"},
+    {CIRCE_PATTERN_NAV_DOUBLE_BACK, "nav.double_back", "double back"},
+    {CIRCE_PATTERN_NAV_TRIPLE_HOME, "nav.triple_home", "triple home"},
+    {CIRCE_PATTERN_STATUS_SAVING_BANNER, "status.saving", "SAVING..."},
+    {CIRCE_PATTERN_STATUS_LOADING_BANNER, "status.loading", "LOADING..."},
+    {CIRCE_PATTERN_STATUS_DELETING_BANNER, "status.deleting", "DELETING..."},
+    {CIRCE_PATTERN_STATUS_ENTRY_SAVED, "status.entry_saved", "ENTRY SAVED"},
+    {CIRCE_PATTERN_STATUS_AUDIO_UNAVAILABLE, "status.audio_unavailable", "AUDIO UNAVAILABLE"},
+    {CIRCE_PATTERN_VOICE_TEST_TONE, "voice.test_tone", "TEST TONE"},
+    {CIRCE_PATTERN_VOICE_TONE_SENT, "voice.tone_sent", "TONE SENT"},
+    {CIRCE_PATTERN_VOICE_PLAYING_TONE, "voice.playing_tone", "PLAYING TONE"},
+    {CIRCE_PATTERN_VOICE_CUES_OFF, "voice.cues_off", "VOICE CUES OFF"},
+    {CIRCE_PATTERN_REVIEW_PATTERNS, "review.patterns", "PATTERNS"},
+    {CIRCE_PATTERN_REVIEW_BODY_MAP, "review.body_map", "BODY MAP"},
+    {CIRCE_PATTERN_HOME_REGULATE, "home.regulate", "REGULATE"},
 };
 
 const char *circe_copy_get(circe_pattern_key_t key)

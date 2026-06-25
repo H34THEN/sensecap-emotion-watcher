@@ -33,6 +33,9 @@ idf_component_register(
         "circe_strand_cache.c"
         "circe_worker.c"
         "circe_terminal.c"
+        "circe_encoder.c"
+        "circe_selector.c"
+        "circe_status_banner.c"
         "circe_ui.c"
     INCLUDE_DIRS "."
     PRIV_REQUIRES sensecap-watcher cjson nvs_flash esp_io_expander esp_io_expander_pca95xx_16bit esp_lvgl_port sscma_client knob fatfs

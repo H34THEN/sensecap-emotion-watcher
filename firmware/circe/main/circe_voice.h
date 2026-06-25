@@ -16,6 +16,7 @@ typedef enum {
     CIRCE_VOICE_EVENT_BREATHE_EXHALE,
     CIRCE_VOICE_EVENT_SESSION_COMPLETE,
     CIRCE_VOICE_EVENT_ERROR_SOFT,
+    CIRCE_VOICE_EVENT_TEST,
 } circe_voice_event_t;
 
 void circe_voice_init(void);
@@ -24,3 +25,4 @@ bool circe_voice_is_enabled(void);
 circe_voice_mode_t circe_voice_get_mode(void);
 void circe_voice_set_mode(circe_voice_mode_t mode);
 void circe_voice_play_event(circe_voice_event_t event);
+bool circe_voice_play_test_tone(void);

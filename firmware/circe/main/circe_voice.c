@@ -155,9 +155,13 @@ static void play_event_blocking(circe_voice_event_t event)
     case CIRCE_VOICE_EVENT_ERROR_SOFT:
         play_tone(330, 60, VOICE_AMP_SOFT / 3);
         break;
+    case CIRCE_VOICE_EVENT_TEST:
+        play_tone(440, 120, VOICE_AMP_SOFT);
+        break;
     default:
         break;
     }
+    ESP_LOGI(TAG, "voice event played type=%d", (int)event);
 }
 
 static void voice_task(void *arg)
@@ -245,6 +249,35 @@ void circe_voice_set_mode(circe_voice_mode_t mode)
     }
     s_mode = mode;
     save_mode_to_nvs(mode);
+    ESP_LOGI(TAG, "voice mode changed to %s", mode == CIRCE_VOICE_MODE_SOFT ? "soft" : "off");
+    if (mode == CIRCE_VOICE_MODE_SOFT) {
+        if (!voice_hw_init()) {
+            ESP_LOGW(TAG, "speaker init failed after enabling soft mode");
+        }
+    }
+}
+
+bool circe_voice_play_test_tone(void)
+{
+    if (s_mode != CIRCE_VOICE_MODE_SOFT) {
+        ESP_LOGI(TAG, "voice test skipped: mode off");
+        return false;
+    }
+    if (!voice_hw_init()) {
+        ESP_LOGW(TAG, "voice test failed: hardware unavailable");
+        return false;
+    }
+    ESP_LOGI(TAG, "voice test tone queued");
+    ensure_task();
+    if (!s_queue) {
+        return play_tone(440, 120, VOICE_AMP_SOFT);
+    }
+    circe_voice_event_t ev = CIRCE_VOICE_EVENT_TEST;
+    if (xQueueSend(s_queue, &ev, 0) != pdTRUE) {
+        ESP_LOGW(TAG, "voice test queue full, playing inline");
+        return play_tone(440, 120, VOICE_AMP_SOFT);
+    }
+    return true;
 }
 
 void circe_voice_play_event(circe_voice_event_t event)
@@ -259,5 +292,7 @@ void circe_voice_play_event(circe_voice_event_t event)
     }
     if (xQueueSend(s_queue, &event, 0) != pdTRUE) {
         ESP_LOGD(TAG, "voice queue full event=%d", (int)event);
+    } else {
+        ESP_LOGI(TAG, "voice event queued type=%d", (int)event);
     }
 }

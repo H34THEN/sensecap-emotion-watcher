@@ -59,6 +59,33 @@ Preserves `/sdcard/CIRCE` entries and factory partitions.
 
 ---
 
+## How to reach every major screen (post UI polish)
+
+```text
+HOME
+  rotate to BODY CHECK-IN → press
+  rotate to REVIEW → press
+  rotate to REGULATE → press
+  rotate to SETTINGS → press
+  rotate to DIAGNOSTICS → press
+
+REVIEW
+  rotate to TODAY → press
+  rotate to PATTERNS → press
+  rotate to BODY MAP → press
+
+REGULATE
+  rotate to BREATHING → press
+  rotate to BILATERAL TAP → press
+
+SETTINGS
+  rotate to VOICE CUES → press
+```
+
+See `docs/ui/RC1_VISUAL_POLISH_PASS.md` for selector behavior, status banner, and triple-press Home.
+
+---
+
 ## Validation checklist (RC1)
 
 Legend: ✅ serial-verified · ⚠️ manual required · ❌ known issue

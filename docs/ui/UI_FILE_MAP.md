@@ -187,6 +187,58 @@ Area/sensation buttons are created in `circe_ui.c` from `circe_body_areas[]` / `
 
 ---
 
+## RC1 Visual Editing Quick Reference
+
+### If you want to change the Home screen
+
+- `firmware/circe/main/circe_home_wheel.c`
+- `firmware/circe/main/circe_daily.c`
+- `firmware/circe/main/circe_ui.c`
+- `firmware/circe/main/circe_theme.c`
+
+### If you want to change selectable menu behavior
+
+- `firmware/circe/main/circe_ui.c`
+- `firmware/circe/main/circe_selector.c` / `circe_selector.h`
+- `firmware/circe/main/circe_home_wheel.c`
+- `firmware/circe/main/circe_encoder.c` (double/triple/long press)
+
+### If you want to change the magenta status banner
+
+- `firmware/circe/main/circe_status_banner.c` / `circe_status_banner.h`
+- `firmware/circe/main/circe_ui.c` (when banner is shown)
+- `firmware/circe/main/circe_theme.c` (if tying banner to theme tokens)
+
+### If you want to change the color picker
+
+- `firmware/circe/main/circe_color_picker.c`
+- `firmware/circe/main/circe_color_intel.c`
+- `firmware/circe/main/circe_theme.c`
+
+### If you want to change Patterns / Body Map / Review
+
+- `firmware/circe/main/circe_patterns.c`
+- `firmware/circe/main/circe_body_map.c`
+- `firmware/circe/main/circe_memory_browser.c`
+- `firmware/circe/main/circe_timeline.c`
+- `firmware/circe/main/circe_ui.c`
+
+### If you want to change Regulation screens
+
+- `firmware/circe/main/circe_regulation.c`
+- `firmware/circe/main/circe_ui.c`
+- `firmware/circe/main/circe_theme.c`
+
+### If you want to change Voice settings
+
+- `firmware/circe/main/circe_voice.c`
+- `firmware/circe/main/circe_ui.c`
+- `firmware/circe/main/circe_copy.c`
+
+**Warnings:** Do not add object grids. Do not move SD work into UI code. Do not create timers without deleting them on exit. Do not place critical status text at the circular bottom edge — use `circe_status_banner_show()`.
+
+---
+
 ## Related docs
 
 - `docs/ui/COMPANION_INTERFACE_SPEC.md` — screen behavior spec

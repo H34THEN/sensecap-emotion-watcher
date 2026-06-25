@@ -25,13 +25,13 @@ Optional, local audio cues for save confirmation and regulation support. Not con
 
 ## Settings
 
-Settings → **VOICE CUES**
+**HOME → SETTINGS → VOICE CUES** (single-focus selector)
 
 | Option | Behavior |
 |--------|----------|
-| OFF | No tones (default) |
-| SOFT | Gentle sine tones on selected events |
-| unavailable | Speaker init failed — safe no-op |
+| SOFT | Gentle sine tones; speaker init on enable |
+| TEST TONE | One short test tone or `AUDIO UNAVAILABLE` banner |
+| OFF | No tones (default unless NVS saved SOFT) |
 
 Stored in NVS: namespace `circe_voice`, key `mode`.
 
