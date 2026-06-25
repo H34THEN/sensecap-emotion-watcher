@@ -47,6 +47,7 @@ Access: `circe_copy_get(CIRCE_PATTERN_*)`
 | `photo.*` | Photo memory / optional / saved locally / capture / skip / unavailable / entry still saved |
 | `voice.*` | Voice cues / off / soft / unavailable / enabled / disabled |
 | `daily.*` | Time-of-day / entry count / regulation / quiet allowed |
+| `body_map.*` | Body map title / loading / empty / observation / error / storage |
 
 Existing body prompts (`body.area_prompt`, `body.sensation_prompt`, `body.intensity_prompt`) were tightened to match the companion spec.
 
@@ -66,6 +67,7 @@ Existing body prompts (`body.area_prompt`, `body.sensation_prompt`, `body.intens
 | Status sublines | `STATUS_*` |
 | Photo memory consent / capture / result | `PHOTO_*` |
 | Voice cues settings | `VOICE_*` |
+| Body heat map | `BODY_MAP_*` |
 
 Reflection text remains in `circe_reflection.c` (rule-based, observation-safe). Timeline empty states remain in `circe_timeline_empty_copy()` with handoff-aligned phrases.
 

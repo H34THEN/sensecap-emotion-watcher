@@ -164,6 +164,16 @@ static const circe_copy_row_t s_copy[] = {
     {CIRCE_PATTERN_DAILY_TIME_UNSET_SUB, "daily.time_unset_sub", "Memory still works locally."},
     {CIRCE_PATTERN_DAILY_MEMORY_LOADING, "daily.memory_loading", "Memory is forming."},
     {CIRCE_PATTERN_DAILY_MEMORY_UNAVAILABLE, "daily.memory_unavailable", "Memory unavailable."},
+    {CIRCE_PATTERN_BODY_MAP_TITLE, "body_map.title", "BODY MAP"},
+    {CIRCE_PATTERN_BODY_MAP_LOADING, "body_map.loading", "Loading body map..."},
+    {CIRCE_PATTERN_BODY_MAP_EMPTY_1, "body_map.empty_1", "Not enough body memory yet."},
+    {CIRCE_PATTERN_BODY_MAP_EMPTY_2, "body_map.empty_2", "Start with the body when ready."},
+    {CIRCE_PATTERN_BODY_MAP_OBSERVATION, "body_map.observation", "This is only an observation."},
+    {CIRCE_PATTERN_BODY_MAP_MEMORY_FORMING, "body_map.memory_forming", "Your body memory is forming."},
+    {CIRCE_PATTERN_BODY_MAP_ERROR_1, "body_map.error_1", "Couldn't load body map."},
+    {CIRCE_PATTERN_BODY_MAP_ERROR_2, "body_map.error_2", "Try diagnostics."},
+    {CIRCE_PATTERN_BODY_MAP_STORAGE_1, "body_map.storage_1", "Memory unavailable."},
+    {CIRCE_PATTERN_BODY_MAP_STORAGE_2, "body_map.storage_2", "Check diagnostics."},
 };
 
 const char *circe_copy_get(circe_pattern_key_t key)

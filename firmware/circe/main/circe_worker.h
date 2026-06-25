@@ -8,6 +8,7 @@
 #include "circe_save.h"
 #include "circe_storage.h"
 #include "circe_patterns.h"
+#include "circe_body_map.h"
 #include "circe_daily.h"
 #include "circe_photo.h"
 #include "circe_timeline.h"
@@ -28,6 +29,7 @@ typedef enum {
     CIRCE_WORKER_STORAGE_STATUS,
     CIRCE_WORKER_DIAGNOSTICS_REFRESH,
     CIRCE_WORKER_LOAD_DAILY_COMPANION,
+    CIRCE_WORKER_LOAD_BODY_MAP,
 } circe_worker_cmd_type_t;
 
 typedef struct {
@@ -56,6 +58,7 @@ typedef struct {
     circe_patterns_result_t patterns;
     circe_photo_result_t photo_result;
     circe_daily_summary_t daily;
+    circe_body_map_summary_t body_map;
 } circe_worker_completion_t;
 
 typedef void (*circe_worker_done_fn)(const circe_worker_completion_t *result, void *user_data);
@@ -79,3 +82,4 @@ bool circe_worker_post_health_check(void);
 bool circe_worker_post_storage_status(void);
 bool circe_worker_post_diagnostics_refresh(void);
 bool circe_worker_post_load_daily_companion(void);
+bool circe_worker_post_load_body_map(void);

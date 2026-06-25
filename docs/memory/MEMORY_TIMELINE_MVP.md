@@ -135,11 +135,11 @@ Local SD only. No export, sync, or cloud.
 
 ## Limitations (MVP)
 
-- No pattern recognition or heat maps
 - No advanced filters
 - 16-entry cap per category
 - Yesterday / week require sensible manual time (or system time)
 - Not a slot-wheel category menu (terminal rows only)
+- **Body Heat Map** uses same index loader as patterns (`docs/body/BODY_HEAT_MAP_MVP.md`)
 - **Daily Companion** reuses TODAY timeline load on worker for home feed (see `docs/daily/DAILY_COMPANION_MVP.md`)
 
 ---
@@ -158,7 +158,7 @@ Local SD only. No export, sync, or cloud.
 
 ## Future
 
-Timeline index path feeds **recent pattern reflection** after save and **Pattern Recognition** (`REVIEW → PATTERNS`). See `docs/patterns/PATTERN_RECOGNITION_MVP.md`.
+Timeline index path feeds **recent pattern reflection** after save, **Pattern Recognition** (`REVIEW → PATTERNS`), and **Body Heat Map** (`REVIEW → BODY MAP`). See `docs/patterns/PATTERN_RECOGNITION_MVP.md` and `docs/body/BODY_HEAT_MAP_MVP.md`.
 
 Memory menu / browse hints and index-repair copy are centralized in `circe_copy.c` (`memory.*` keys). Empty-state phrases in `circe_timeline_empty_copy()` match the companion spec. See `docs/conversation/CONVERSATION_ENGINE_COPY_POLISH.md`.
 

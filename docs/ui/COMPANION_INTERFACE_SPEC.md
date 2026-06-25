@@ -177,7 +177,11 @@ No cards, no scroll — same companion shell typography.
 
 ### Memory timeline (MVP)
 
-REVIEW → category menu (TODAY / YESTERDAY / THIS WEEK / ALL ENTRIES / **PATTERNS**) → worker load → encoder browse or pattern rotate. See `docs/memory/MEMORY_TIMELINE_MVP.md` and `docs/patterns/PATTERN_RECOGNITION_MVP.md`.
+REVIEW → category menu (TODAY / YESTERDAY / THIS WEEK / ALL ENTRIES / **PATTERNS** / **BODY MAP**) → worker load → encoder browse, pattern rotate, or body map bars. See `docs/memory/MEMORY_TIMELINE_MVP.md`, `docs/patterns/PATTERN_RECOGNITION_MVP.md`, and `docs/body/BODY_HEAT_MAP_MVP.md`.
+
+### Body heat map (MVP)
+
+**BODY MAP** screen: up to 5 body areas ranked from last 16 entries (7-day window). Text `#` bars; encoder rotates detail subline. See `docs/body/BODY_HEAT_MAP_MVP.md`.
 
 ### Pattern recognition (MVP)
 

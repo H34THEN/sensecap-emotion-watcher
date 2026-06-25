@@ -49,6 +49,9 @@ typedef enum {
     CIRCE_FLOW_PHOTO_CAPTURE,
     CIRCE_FLOW_PHOTO_RESULT,
     CIRCE_FLOW_VOICE_CUES,
+    CIRCE_FLOW_BODY_MAP,
+    CIRCE_FLOW_BODY_MAP_EMPTY,
+    CIRCE_FLOW_BODY_MAP_ERROR,
 } circe_flow_step_t;
 
 typedef struct {

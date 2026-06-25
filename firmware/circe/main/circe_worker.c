@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "circe_index.h"
+#include "circe_body_map.h"
 #include "circe_daily.h"
 #include "circe_patterns.h"
 #include "circe_photo.h"
@@ -251,6 +252,13 @@ static void run_load_daily_companion(circe_worker_completion_t *out)
              out->daily.regulation_today);
 }
 
+static void run_load_body_map(circe_worker_completion_t *out)
+{
+    out->success = circe_body_map_load(&out->body_map);
+    snprintf(out->summary, sizeof(out->summary), "Body map rows=%d entries=%d", out->body_map.row_count,
+             out->body_map.total_entries);
+}
+
 static void run_health_check(circe_worker_completion_t *out)
 {
     circe_storage_health_check(&out->health);
@@ -316,6 +324,9 @@ static void worker_task(void *arg)
             break;
         case CIRCE_WORKER_LOAD_DAILY_COMPANION:
             run_load_daily_companion(&result);
+            break;
+        case CIRCE_WORKER_LOAD_BODY_MAP:
+            run_load_body_map(&result);
             break;
         default:
             result.success = false;
@@ -467,4 +478,9 @@ bool circe_worker_post_diagnostics_refresh(void)
 bool circe_worker_post_load_daily_companion(void)
 {
     return post_simple(CIRCE_WORKER_LOAD_DAILY_COMPANION);
+}
+
+bool circe_worker_post_load_body_map(void)
+{
+    return post_simple(CIRCE_WORKER_LOAD_BODY_MAP);
 }

@@ -97,3 +97,4 @@ No new audio in this phase. Voice cues unchanged (optional SOFT tones elsewhere)
 - Richer daily summary screen (optional)
 - Evening close-the-day prompt flow
 - Deeper pattern tie-in without rewriting timeline
+- Optional body heat map line on home when safe (`docs/body/BODY_HEAT_MAP_MVP.md`)

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "circe_body_map.h"
 #include "circe_copy.h"
 #include "circe_daily.h"
 #include "circe_entry_modes.h"
@@ -78,6 +79,11 @@ static struct {
     int count;
 } s_pattern_browser;
 static circe_patterns_result_t s_patterns_result;
+static circe_body_map_summary_t s_body_map_summary;
+static struct {
+    bool active;
+    int selected;
+} s_body_map_browser;
 static circe_timeline_category_t s_memory_category = CIRCE_TIMELINE_CAT_TODAY;
 static bool s_memory_context;
 static bool s_delete_from_memory;
@@ -246,6 +252,10 @@ static bool post_load_patterns(void);
 static void pattern_browser_begin(int count);
 static void pattern_browser_refresh(void);
 static void pattern_browser_poll(void);
+static void body_map_browser_begin(void);
+static void body_map_browser_refresh(void);
+static void body_map_browser_poll(void);
+static bool post_load_body_map(void);
 static void open_memory_menu(void);
 static void home_wheel_open_selected(void);
 
@@ -411,6 +421,8 @@ static void clear_content(void)
     s_pattern_browser.active = false;
     s_pattern_browser.count = 0;
     s_pattern_browser.selected = 0;
+    s_body_map_browser.active = false;
+    s_body_map_browser.selected = 0;
     s_scroll = NULL;
     s_column = NULL;
     s_focus_body = NULL;
@@ -599,6 +611,12 @@ static void nav_timer_cb(lv_timer_t *timer)
         pattern_browser_poll();
         if (s_pattern_browser.selected != prev) {
             pattern_browser_refresh();
+        }
+    } else if (s_body_map_browser.active) {
+        int prev = s_body_map_browser.selected;
+        body_map_browser_poll();
+        if (s_body_map_browser.selected != prev) {
+            body_map_browser_refresh();
         }
     } else if (s_memory_browser.active) {
         int prev = s_memory_browser.selected;
@@ -812,6 +830,19 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
     case CIRCE_WORKER_LOAD_DAILY_COMPANION:
         apply_daily_companion_feed(&c->daily);
         break;
+    case CIRCE_WORKER_LOAD_BODY_MAP:
+        s_body_map_summary = c->body_map;
+        if (s_body_map_summary.state == CIRCE_BODY_MAP_STATE_STORAGE) {
+            go_step(CIRCE_FLOW_BODY_MAP_ERROR);
+        } else if (s_body_map_summary.state == CIRCE_BODY_MAP_STATE_ERROR) {
+            go_step(CIRCE_FLOW_BODY_MAP_ERROR);
+        } else if (s_body_map_summary.state == CIRCE_BODY_MAP_STATE_EMPTY) {
+            go_step(CIRCE_FLOW_BODY_MAP_EMPTY);
+        } else {
+            body_map_browser_begin();
+            go_step(CIRCE_FLOW_BODY_MAP);
+        }
+        break;
     default:
         break;
     }
@@ -900,6 +931,12 @@ static bool post_load_patterns(void)
     return circe_worker_post_load_patterns();
 }
 
+static bool post_load_body_map(void)
+{
+    circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_BODY_MAP_LOADING));
+    return circe_worker_post_load_body_map();
+}
+
 static void pattern_browser_begin(int count)
 {
     s_pattern_browser.active = count > 0;
@@ -952,6 +989,69 @@ static void pattern_browser_poll(void)
             }
             while (s_pattern_browser.selected >= s_pattern_browser.count) {
                 s_pattern_browser.selected -= s_pattern_browser.count;
+            }
+        }
+        break;
+    }
+}
+
+static void body_map_browser_begin(void)
+{
+    s_body_map_browser.active = s_body_map_summary.row_count > 0;
+    s_body_map_browser.selected = 0;
+}
+
+static void body_map_browser_refresh(void)
+{
+    if (!s_body_map_browser.active || s_body_map_summary.row_count <= 0) {
+        return;
+    }
+    if (s_body_map_browser.selected < 0) {
+        s_body_map_browser.selected = 0;
+    }
+    if (s_body_map_browser.selected >= s_body_map_summary.row_count) {
+        s_body_map_browser.selected = s_body_map_summary.row_count - 1;
+    }
+
+    int max_score = s_body_map_summary.rows[0].score;
+    char line_bufs[CIRCE_TERMINAL_FEED_LINES][48];
+    const char *lines[CIRCE_TERMINAL_FEED_LINES];
+    int n = 0;
+    for (int i = 0; i < s_body_map_summary.row_count && n < CIRCE_TERMINAL_FEED_LINES; i++) {
+        char row[40];
+        circe_body_map_format_row(row, sizeof(row), &s_body_map_summary.rows[i], max_score);
+        snprintf(line_bufs[n], sizeof(line_bufs[n]), "> %s", row);
+        lines[n] = line_bufs[n];
+        n++;
+    }
+    circe_terminal_feed_set(&s_feed, lines, n);
+    circe_terminal_feed_show_cursor(&s_feed, true);
+
+    char detail[64];
+    circe_body_map_format_detail(detail, sizeof(detail), &s_body_map_summary.rows[s_body_map_browser.selected]);
+    circe_hud_set_subline(&s_hud, detail[0] ? detail : circe_copy_get(CIRCE_PATTERN_BODY_MAP_OBSERVATION));
+}
+
+static void body_map_browser_poll(void)
+{
+    if (!s_body_map_browser.active || s_body_map_summary.row_count <= 0) {
+        return;
+    }
+    lv_indev_t *enc = NULL;
+    while ((enc = lv_indev_get_next(enc)) != NULL) {
+        if (enc->driver->type != LV_INDEV_TYPE_ENCODER) {
+            continue;
+        }
+        lv_indev_data_t data;
+        lv_memset_00(&data, sizeof(data));
+        enc->driver->read_cb(enc->driver, &data);
+        if (data.enc_diff != 0) {
+            s_body_map_browser.selected += data.enc_diff;
+            while (s_body_map_browser.selected < 0) {
+                s_body_map_browser.selected += s_body_map_summary.row_count;
+            }
+            while (s_body_map_browser.selected >= s_body_map_summary.row_count) {
+                s_body_map_browser.selected -= s_body_map_summary.row_count;
             }
         }
         break;
@@ -1179,6 +1279,10 @@ static void btn_event_cb(lv_event_t *e)
         worker_post_or_busy(post_timeline_all);
     } else if (strcmp(id, "mem_patterns") == 0) {
         worker_post_or_busy(post_load_patterns);
+    } else if (strcmp(id, "mem_body_map") == 0) {
+        worker_post_or_busy(post_load_body_map);
+    } else if (strcmp(id, "body_map") == 0) {
+        worker_post_or_busy(post_load_body_map);
     } else if (strcmp(id, "mem_view") == 0) {
         worker_post_or_busy(post_load_memory_entry);
     } else if (strcmp(id, "mem_delete") == 0) {
@@ -1620,6 +1724,7 @@ void circe_ui_show_step(circe_flow_step_t step)
         add_btn("THIS WEEK", "mem_week");
         add_btn("ALL ENTRIES", "mem_all");
         add_btn("PATTERNS", "mem_patterns");
+        add_btn("BODY MAP", "mem_body_map");
         add_back_btn(CIRCE_FLOW_HOME);
         focus_first_obj(s_first_row);
         break;
@@ -1633,6 +1738,7 @@ void circe_ui_show_step(circe_flow_step_t step)
         if (circe_patterns_any_suggest_regulate(&s_patterns_result)) {
             add_btn("REGULATE", "regulate");
         }
+        add_btn("BODY MAP", "body_map");
         add_btn("REVIEW", "review");
         add_back_btn(CIRCE_FLOW_MEMORY_MENU);
         focus_first_obj(s_first_row);
@@ -1675,6 +1781,51 @@ void circe_ui_show_step(circe_flow_step_t step)
         circe_terminal_feed_show_cursor(&s_feed, true);
         s_nav_back_step = CIRCE_FLOW_MEMORY_MENU;
         if (!s_patterns_result.storage_unavailable) {
+            add_btn("DIAGNOSTICS", alloc_btn_id("nav:%d", CIRCE_FLOW_DIAGNOSTICS));
+        }
+        add_back_btn(CIRCE_FLOW_MEMORY_MENU);
+        focus_first_obj(s_first_row);
+        break;
+    }
+
+    case CIRCE_FLOW_BODY_MAP:
+        setup_terminal_shell(CIRCE_FLOW_MEMORY_MENU, "body map");
+        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_BODY_MAP_TITLE));
+        circe_terminal_nav_enable(true);
+        body_map_browser_refresh();
+        s_nav_back_step = CIRCE_FLOW_MEMORY_MENU;
+        create_scroll_panel();
+        add_back_btn(CIRCE_FLOW_MEMORY_MENU);
+        focus_first_obj(s_first_row);
+        break;
+
+    case CIRCE_FLOW_BODY_MAP_EMPTY: {
+        setup_terminal_shell(CIRCE_FLOW_MEMORY_MENU, "body map");
+        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_BODY_MAP_TITLE));
+        const char *elines[] = {circe_copy_get(CIRCE_PATTERN_BODY_MAP_EMPTY_1),
+                                circe_copy_get(CIRCE_PATTERN_BODY_MAP_EMPTY_2)};
+        circe_terminal_feed_set(&s_feed, elines, 2);
+        circe_terminal_feed_show_cursor(&s_feed, true);
+        s_nav_back_step = CIRCE_FLOW_MEMORY_MENU;
+        add_back_btn(CIRCE_FLOW_MEMORY_MENU);
+        focus_first_obj(s_first_row);
+        break;
+    }
+
+    case CIRCE_FLOW_BODY_MAP_ERROR: {
+        setup_terminal_shell(CIRCE_FLOW_MEMORY_MENU, "body map");
+        show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_BODY_MAP_TITLE));
+        const char *l1 = s_body_map_summary.state == CIRCE_BODY_MAP_STATE_STORAGE
+                             ? circe_copy_get(CIRCE_PATTERN_BODY_MAP_STORAGE_1)
+                             : circe_copy_get(CIRCE_PATTERN_BODY_MAP_ERROR_1);
+        const char *l2 = s_body_map_summary.state == CIRCE_BODY_MAP_STATE_STORAGE
+                             ? circe_copy_get(CIRCE_PATTERN_BODY_MAP_STORAGE_2)
+                             : circe_copy_get(CIRCE_PATTERN_BODY_MAP_ERROR_2);
+        const char *elines[] = {l1, l2};
+        circe_terminal_feed_set(&s_feed, elines, 2);
+        circe_terminal_feed_show_cursor(&s_feed, true);
+        s_nav_back_step = CIRCE_FLOW_MEMORY_MENU;
+        if (s_body_map_summary.state != CIRCE_BODY_MAP_STATE_STORAGE) {
             add_btn("DIAGNOSTICS", alloc_btn_id("nav:%d", CIRCE_FLOW_DIAGNOSTICS));
         }
         add_back_btn(CIRCE_FLOW_MEMORY_MENU);

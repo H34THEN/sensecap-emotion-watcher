@@ -89,16 +89,16 @@ Worker stack high-water logged before/after each job (`log_worker_resources`).
 
 ## Known limitations
 
-- No charts, heat maps, or export
+- No charts beyond text bars, or export
 - No persistence of pattern results (recomputed each open)
 - Rules shared conceptually with post-save recent reflection but thresholds differ (reflection uses 2+ for some rules)
 - Strand, cloud, ML, voice not involved
 
 ---
 
-## Future links
+## Related features
 
-- **Body Heat Map** — spatial visualization of repeated body areas (later phase)
+- **Body Heat Map** — implemented; text/bar area summary (`docs/body/BODY_HEAT_MAP_MVP.md`). Shares scan loader with patterns.
 - **Daily Companion** — reuses TODAY timeline scan for home summary (see `docs/daily/DAILY_COMPANION_MVP.md`)
 
 See also: `docs/reflection/RECENT_PATTERN_REFLECTION_MVP.md`, `docs/memory/MEMORY_TIMELINE_MVP.md`

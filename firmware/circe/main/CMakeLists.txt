@@ -20,6 +20,7 @@ idf_component_register(
         "circe_patterns.c"
         "circe_photo.c"
         "circe_daily.c"
+        "circe_body_map.c"
         "circe_voice.c"
         "circe_buf.c"
         "circe_save.c"

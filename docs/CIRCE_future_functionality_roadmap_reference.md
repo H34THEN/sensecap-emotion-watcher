@@ -398,12 +398,12 @@ Shows the active entry's strongest body locations.
 
 ### Success Criteria
 
-- Body map opens from Review or Settings.
+- Body map opens from Review or Patterns. **Implemented (MVP):** `REVIEW → BODY MAP` and `PATTERNS → BODY MAP`. See `docs/body/BODY_HEAT_MAP_MVP.md`.
 - Summary is generated from saved entries.
 - No SD scanning on LVGL task.
 - Display is readable on circular screen.
 - No diagnosis or medical claim.
-- Entry deletion updates or invalidates cached summary.
+- Entry deletion updates or invalidates cached summary. **MVP:** no cache; recomputed each open.
 - Empty state works.
 
 ---
