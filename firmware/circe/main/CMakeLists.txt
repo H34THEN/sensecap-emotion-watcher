@@ -36,6 +36,8 @@ idf_component_register(
         "circe_encoder.c"
         "circe_selector.c"
         "circe_status_banner.c"
+        "circe_home_bg.c"
+        "assets/circe_homepage_bg.c"
         "circe_ui_tokens.c"
         "circe_ui.c"
     INCLUDE_DIRS "."

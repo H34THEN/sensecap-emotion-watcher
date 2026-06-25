@@ -16,4 +16,8 @@ void circe_ui_tokens_log_boot(void)
     ESP_LOGI(TAG, "  banner %dx%d y_ofs=%d terminal feed %dx%d y_ofs=%d",
              CIRCE_UI_STATUS_BANNER_W, CIRCE_UI_STATUS_BANNER_H, CIRCE_UI_STATUS_BANNER_Y_OFS,
              CIRCE_UI_TERMINAL_FEED_PANEL_W, CIRCE_UI_TERMINAL_FEED_PANEL_H, CIRCE_UI_TERMINAL_FEED_Y_OFS);
+#if CIRCE_UI_HOME_USE_STATIC_BG
+    ESP_LOGI(TAG, "  home static bg %dx%d at (%d,%d)", CIRCE_UI_HOME_BG_W, CIRCE_UI_HOME_BG_H, CIRCE_UI_HOME_BG_X,
+             CIRCE_UI_HOME_BG_Y);
+#endif
 }

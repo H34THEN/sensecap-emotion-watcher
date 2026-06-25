@@ -49,6 +49,7 @@ void circe_hud_show_companion_prompt(circe_hud_t *hud, const char *prompt, const
 void circe_hud_show_home(circe_hud_t *hud, const char *heading, const char *subline);
 void circe_hud_show_prompt(circe_hud_t *hud, const char *prompt);
 void circe_hud_show_terminal_shell(circe_hud_t *hud, const char *title, const char *status_line);
+void circe_hud_show_static_bg_home(circe_hud_t *hud);
 void circe_hud_show_color_field_layout(circe_hud_t *hud, const char *title, const char *status_line);
 void circe_hud_show_terminal_prompt(circe_hud_t *hud, const char *status_line);
 void circe_hud_set_telemetry(circe_hud_t *hud, int active_segment);

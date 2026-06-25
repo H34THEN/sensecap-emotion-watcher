@@ -81,6 +81,16 @@
 #define CIRCE_UI_TERMINAL_BTN_ROW_GAP      2
 
 /* -------------------------------------------------------------------------- */
+/* Home static background (full square canvas; physical circle clips corners)   */
+/* -------------------------------------------------------------------------- */
+
+#define CIRCE_UI_HOME_USE_STATIC_BG   1
+#define CIRCE_UI_HOME_BG_X            0
+#define CIRCE_UI_HOME_BG_Y            0
+#define CIRCE_UI_HOME_BG_W            CIRCE_UI_DISPLAY_W
+#define CIRCE_UI_HOME_BG_H            CIRCE_UI_DISPLAY_H
+
+/* -------------------------------------------------------------------------- */
 /* Home slot-wheel selector                                                    */
 /* -------------------------------------------------------------------------- */
 

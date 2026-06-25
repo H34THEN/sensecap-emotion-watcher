@@ -33,6 +33,26 @@ Primary file:
 - regulation screen spacing
 - circle-safe margin constants
 - selector label opacities
+- Home static background enable/placement (`CIRCE_UI_HOME_USE_STATIC_BG`, `CIRCE_UI_HOME_BG_*`)
+
+**Home background image (source PNG):**
+
+1. Replace `docs/circe_homepage_bg.png` (square recommended).
+2. Regenerate embedded asset (requires Pillow):
+
+```bash
+pip install Pillow
+```
+
+```bash
+python3 scripts/convert_png_to_lvgl_rgb565.py docs/circe_homepage_bg.png \
+  --target-size 412 \
+  --out-c firmware/circe/main/assets/circe_homepage_bg.c \
+  --out-h firmware/circe/main/assets/circe_homepage_bg.h \
+  --symbol circe_homepage_bg
+```
+
+3. Rebuild and app-flash. See `docs/ui/HOME_STATIC_BACKGROUND_MVP.md`.
 
 **Also edit for colors:**
 
@@ -95,7 +115,10 @@ Serial boot shows token summary:
 
 ```text
 CIRCE UI tokens loaded
+CIRCE home static background enabled: 412x412 RGB565
 ```
+
+(Background log appears when Home is shown and `CIRCE_UI_HOME_USE_STATIC_BG` is 1.)
 
 ---
 
@@ -152,6 +175,7 @@ git commit -m "style(ui): tune circular layout"
 | Color field | `CIRCE_UI_COLOR_*` |
 | Breathing / bilateral | `CIRCE_UI_REG_*` |
 | Circle safe margins | `CIRCE_UI_SAFE_*` / `CIRCE_UI_COMFORT_*` |
+| Home static background | `CIRCE_UI_HOME_USE_STATIC_BG`, `CIRCE_UI_HOME_BG_*` |
 
 Full file map: `docs/ui/UI_FILE_MAP.md`
 
@@ -160,6 +184,7 @@ Full file map: `docs/ui/UI_FILE_MAP.md`
 ## Related docs
 
 - `docs/ui/UI_FILE_MAP.md` — screen-by-screen file ownership
+- `docs/ui/HOME_STATIC_BACKGROUND_MVP.md` — embedded Home HUD background
 - `docs/ui/SAFE_AREA_SPEC.md` — 412×412 circular zones
 - `docs/ui/SCREEN_CAPTURE_GUIDE.md` — photo checklist
 - `docs/releases/CIRCE_DAILY_TRIAL_GUIDE.md` — daily use

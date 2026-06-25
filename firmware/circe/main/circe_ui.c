@@ -21,6 +21,7 @@
 #include "circe_strand_cache.h"
 #include "circe_color_picker.h"
 #include "circe_color_intel.h"
+#include "circe_home_bg.h"
 #include "circe_home_wheel.h"
 #include "circe_memory_browser.h"
 #include "circe_patterns.h"
@@ -502,7 +503,11 @@ static void show_save_success_notice(circe_save_result_t result)
 
 static void show_home(void)
 {
-    circe_hud_show_terminal_shell(&s_hud, "CIRCE", "online");
+    if (circe_home_bg_is_enabled()) {
+        circe_hud_show_static_bg_home(&s_hud);
+    } else {
+        circe_hud_show_terminal_shell(&s_hud, "CIRCE", "online");
+    }
 }
 
 static void apply_default_home_feed(void)
@@ -1770,6 +1775,7 @@ void circe_ui_init(void)
     circe_theme_apply_screen(s_scr);
 
     circe_hud_create(s_scr, &s_hud);
+    circe_home_bg_init(s_scr);
     circe_status_banner_init(s_scr);
     s_content = circe_hud_actions(&s_hud);
     s_strand_arc = circe_hud_strand_layer(&s_hud);
@@ -1791,6 +1797,9 @@ void circe_ui_show_step(circe_flow_step_t step)
     }
     clear_content();
     circe_status_banner_dismiss_indefinite();
+    if (step != CIRCE_FLOW_HOME) {
+        circe_home_bg_hide();
+    }
     setup_encoder_group();
     apply_theme_to_shell();
     circe_hud_set_reset_mode(&s_hud, false);
@@ -1798,6 +1807,7 @@ void circe_ui_show_step(circe_flow_step_t step)
 
     switch (step) {
     case CIRCE_FLOW_HOME: {
+        circe_home_bg_show();
         show_home();
         if (!s_hud.viewport) {
             ESP_LOGE(TAG, "HOME: viewport null");

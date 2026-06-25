@@ -100,7 +100,14 @@ See `docs/PHASE-RC1-VISUAL-POLISH-PASS-REPORT.md`
 
 ## Visual editing
 
-See `docs/ui/UI_FILE_MAP.md` — section **RC1 Visual Editing Quick Reference**
+See `docs/ui/UI_FILE_MAP.md` — section **START HERE FOR MANUAL UI EDITING**
+
+**Post-RC1 (visual infrastructure pass):**
+
+- **`circe_ui_tokens.h`** — positions, safe zones, banner/feed/selector dimensions
+- **`circe_home_bg.c`** + **`assets/circe_homepage_bg.c`** — static Home HUD background (412×412 edge-to-edge)
+- Disable background: `CIRCE_UI_HOME_USE_STATIC_BG 0` in tokens header
+- Workflow: `docs/ui/MANUAL_UI_EDITING_WORKFLOW.md`
 
 ---
 

@@ -37,7 +37,7 @@ For each screen: **path**, **what should be visible**, **clipping checks**, **so
 
 | Capture | Path | Visible / check | Files |
 |---------|------|-----------------|-------|
-| HOME | Boot → Home | One strong option (default BODY CHECK-IN), index `1 / 6`, rotate/press hints; daily feed lines below wheel | `circe_home_wheel.c`, `circe_daily.c`, `circe_ui.c` |
+| HOME | Boot → Home | Static HUD background edge-to-edge; one strong option (default BODY CHECK-IN), index `1 / 6`, rotate/press hints; daily feed lines over background; no letterboxing | `circe_home_bg.c`, `assets/circe_homepage_bg.c`, `circe_home_wheel.c`, `circe_daily.c`, `circe_ui.c` |
 
 ### Body check-in flow
 

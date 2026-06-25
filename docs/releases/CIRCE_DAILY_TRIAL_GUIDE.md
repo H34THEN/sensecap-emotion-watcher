@@ -131,4 +131,6 @@ Save reports in your notes or project issues as you prefer.
 
 - `docs/releases/CIRCE_RC1_HARDWARE_SIGNOFF.md` — validation status
 - `docs/ui/UI_FILE_MAP.md` — which files control each screen (for visual edits)
+- `docs/ui/MANUAL_UI_EDITING_WORKFLOW.md` — token tuning + app-flash workflow
+- `docs/ui/HOME_STATIC_BACKGROUND_MVP.md` — Home static HUD background
 - `docs/ui/SCREEN_CAPTURE_GUIDE.md` — photo checklist for every screen

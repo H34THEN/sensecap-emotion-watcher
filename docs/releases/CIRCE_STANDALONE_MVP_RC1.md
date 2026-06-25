@@ -153,6 +153,13 @@ Legend: ✅ serial-verified · ⚠️ manual required · ❌ known issue
 
 See **`docs/ui/UI_FILE_MAP.md`** for which source files control each screen.
 
+**Post-RC1 visual infrastructure (not a new signed release):**
+
+- **`firmware/circe/main/circe_ui_tokens.h`** — centralized layout tuning tokens
+- **`docs/circe_homepage_bg.png`** → embedded Home HUD background (`assets/circe_homepage_bg.c`)
+- **`docs/ui/MANUAL_UI_EDITING_WORKFLOW.md`** — safe edit / build / app-flash workflow
+- **`docs/ui/HOME_STATIC_BACKGROUND_MVP.md`** — background asset details
+
 ---
 
 ## Post-RC1 roadmap (recommended)
