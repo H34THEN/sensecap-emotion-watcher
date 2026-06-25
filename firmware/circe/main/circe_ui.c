@@ -143,6 +143,8 @@ static struct {
 static circe_timeline_category_t s_memory_category = CIRCE_TIMELINE_CAT_TODAY;
 static bool s_memory_context;
 static bool s_delete_from_memory;
+static circe_flow_step_t s_worker_origin_step;
+static bool s_worker_origin_valid;
 static circe_storage_health_t s_diag_health;
 static bool s_diag_health_valid;
 
@@ -152,6 +154,9 @@ static void go_home_safe(void);
 static void handle_selector_action(int enc_action);
 static void ui_show_status_key(circe_pattern_key_t key);
 static void ui_show_status_timed(circe_pattern_key_t key, uint32_t ms);
+static void worker_mark_origin(void);
+static void worker_clear_origin(void);
+static bool worker_apply_navigation(circe_worker_cmd_type_t type);
 static void setup_selector_menu(const char *title, const char *status_line, circe_flow_step_t back_step,
                                 const circe_selector_item_t *items, int count);
 
@@ -446,7 +451,11 @@ static bool post_health_check(void)
 static bool post_probe(void)
 {
     circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_STATUS_PROBING));
-    return circe_worker_post_storage_probe();
+    if (!circe_worker_post_storage_probe()) {
+        return false;
+    }
+    worker_mark_origin();
+    return true;
 }
 
 static bool enqueue_save_async(circe_flow_step_t on_success, int msg_key, bool quick_subline);
@@ -845,13 +854,38 @@ static void ui_show_status_timed(circe_pattern_key_t key, uint32_t ms)
     circe_hud_set_subline(&s_hud, "");
 }
 
+static void worker_mark_origin(void)
+{
+    if (s_engine) {
+        s_worker_origin_step = s_engine->step;
+        s_worker_origin_valid = true;
+    }
+}
+
+static void worker_clear_origin(void)
+{
+    s_worker_origin_valid = false;
+}
+
+static bool worker_apply_navigation(circe_worker_cmd_type_t type)
+{
+    if (s_worker_origin_valid && s_engine && s_engine->step != s_worker_origin_step) {
+        ESP_LOGW(TAG, "ignore stale worker navigation type=%d origin=%d current=%d", (int)type,
+                 (int)s_worker_origin_step, (int)s_engine->step);
+        circe_status_banner_reset();
+        worker_clear_origin();
+        return false;
+    }
+    worker_clear_origin();
+    circe_status_banner_dismiss_indefinite();
+    return true;
+}
+
 static void go_home_safe(void)
 {
-    if (circe_worker_is_busy()) {
-        ui_show_status_key(CIRCE_PATTERN_STATUS_LOADING_BANNER);
-    }
     circe_regulation_destroy();
-    circe_status_banner_hide();
+    circe_status_banner_reset();
+    worker_clear_origin();
     s_memory_context = false;
     s_delete_from_memory = false;
     go_step(CIRCE_FLOW_HOME);
@@ -906,10 +940,11 @@ static bool enqueue_save_async(circe_flow_step_t on_success, int msg_key, bool q
     ui_show_status_key(CIRCE_PATTERN_STATUS_SAVING_BANNER);
     if (!circe_worker_post_save_entry(&s_engine->draft, s_engine->editing_existing, on_success, msg_key,
                                       quick_subline)) {
-        circe_status_banner_hide();
-        ui_show_status_key(CIRCE_PATTERN_STATUS_LOADING_BANNER);
+        circe_status_banner_reset();
+        ui_show_status_timed(CIRCE_PATTERN_STATUS_LOADING_BANNER, 1200);
         return false;
     }
+    worker_mark_origin();
     return true;
 }
 
@@ -922,13 +957,19 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
 
     switch (c->type) {
     case CIRCE_WORKER_TEST_SAVE:
-        ui_show_status_timed(CIRCE_PATTERN_STATUS_ENTRY_SAVED, 1500);
+        if (!worker_apply_navigation(c->type)) {
+            break;
+        }
+        ui_show_status_timed(CIRCE_PATTERN_STATUS_ENTRY_SAVED, 1000);
         circe_hud_set_subline(&s_hud, c->summary);
         go_step(CIRCE_FLOW_DIAGNOSTICS);
         break;
     case CIRCE_WORKER_SAVE_ENTRY:
         if (circe_save_result_is_success(c->save_result)) {
-            ui_show_status_timed(CIRCE_PATTERN_STATUS_ENTRY_SAVED, 1200);
+            if (!worker_apply_navigation(c->type)) {
+                break;
+            }
+            ui_show_status_timed(CIRCE_PATTERN_STATUS_ENTRY_SAVED, 1000);
             strncpy(s_review_id, c->entry_id, sizeof(s_review_id) - 1);
             s_review_id[sizeof(s_review_id) - 1] = '\0';
             s_engine->editing_existing = false;
@@ -951,16 +992,24 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
                 go_step(c->success_step);
             }
         } else {
+            circe_status_banner_reset();
+            worker_clear_origin();
             show_save_error(c->save_result);
         }
         break;
     case CIRCE_WORKER_PHOTO_CAPTURE:
+        if (!worker_apply_navigation(c->type)) {
+            break;
+        }
         s_engine->draft = c->entry;
         s_photo_result = c->photo_result;
         go_step(CIRCE_FLOW_PHOTO_RESULT);
         break;
     case CIRCE_WORKER_DELETE_ENTRY:
         if (c->success) {
+            if (!worker_apply_navigation(c->type)) {
+                break;
+            }
             s_review_id[0] = '\0';
             show_message(CIRCE_PATTERN_DELETE_DONE);
             s_engine->editing_existing = false;
@@ -975,29 +1024,45 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
                 go_step(CIRCE_FLOW_HOME);
             }
         } else {
+            circe_status_banner_reset();
+            worker_clear_origin();
             circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_STATUS_DELETE_FAILED));
         }
         break;
     case CIRCE_WORKER_REBUILD_INDEX:
+        if (!worker_apply_navigation(c->type)) {
+            break;
+        }
         circe_hud_set_subline(&s_hud, c->summary);
         go_step(CIRCE_FLOW_DIAGNOSTICS);
         break;
     case CIRCE_WORKER_REINIT_STORAGE:
+        if (!worker_apply_navigation(c->type)) {
+            break;
+        }
         s_engine->storage_ready = c->storage_ready;
         circe_hud_set_subline(&s_hud, c->summary);
         go_step(CIRCE_FLOW_DIAGNOSTICS);
         break;
     case CIRCE_WORKER_STORAGE_PROBE:
+        if (!worker_apply_navigation(c->type)) {
+            break;
+        }
         circe_hud_set_subline(&s_hud, c->summary);
         go_step(CIRCE_FLOW_DIAGNOSTICS);
         break;
     case CIRCE_WORKER_HEALTH_CHECK:
     case CIRCE_WORKER_STORAGE_STATUS:
     case CIRCE_WORKER_DIAGNOSTICS_REFRESH:
+        worker_clear_origin();
+        circe_status_banner_dismiss_indefinite();
         diagnostics_apply_health(&c->health);
         circe_hud_set_subline(&s_hud, c->summary);
         break;
     case CIRCE_WORKER_LOAD_REVIEW:
+        if (!worker_apply_navigation(c->type)) {
+            break;
+        }
         if (c->review_found && c->success) {
             s_engine->draft = c->entry;
             strncpy(s_review_id, c->entry_id, sizeof(s_review_id) - 1);
@@ -1009,6 +1074,9 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
         }
         break;
     case CIRCE_WORKER_LOAD_TIMELINE:
+        if (!worker_apply_navigation(c->type)) {
+            break;
+        }
         if (c->timeline_index_error) {
             go_step(CIRCE_FLOW_MEMORY_ERROR);
         } else if (c->timeline_empty) {
@@ -1018,6 +1086,9 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
         }
         break;
     case CIRCE_WORKER_LOAD_ENTRY:
+        if (!worker_apply_navigation(c->type)) {
+            break;
+        }
         if (c->success) {
             s_engine->draft = c->entry;
             s_engine->editing_existing = true;
@@ -1030,6 +1101,9 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
         }
         break;
     case CIRCE_WORKER_LOAD_PATTERNS:
+        if (!worker_apply_navigation(c->type)) {
+            break;
+        }
         s_patterns_result = c->patterns;
         if (c->patterns.storage_unavailable) {
             go_step(CIRCE_FLOW_PATTERNS_ERROR);
@@ -1044,9 +1118,15 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
         }
         break;
     case CIRCE_WORKER_LOAD_DAILY_COMPANION:
-        apply_daily_companion_feed(&c->daily);
+        worker_clear_origin();
+        if (s_engine->step == CIRCE_FLOW_HOME) {
+            apply_daily_companion_feed(&c->daily);
+        }
         break;
     case CIRCE_WORKER_LOAD_BODY_MAP:
+        if (!worker_apply_navigation(c->type)) {
+            break;
+        }
         s_body_map_summary = c->body_map;
         if (s_body_map_summary.state == CIRCE_BODY_MAP_STATE_STORAGE) {
             go_step(CIRCE_FLOW_BODY_MAP_ERROR);
@@ -1059,6 +1139,8 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
         }
         break;
     default:
+        worker_clear_origin();
+        circe_status_banner_dismiss_indefinite();
         break;
     }
 }
@@ -1075,19 +1157,32 @@ static bool worker_post_or_busy(bool (*post_fn)(void))
 static bool post_test_save(void)
 {
     ui_show_status_key(CIRCE_PATTERN_STATUS_SAVING_BANNER);
-    return circe_worker_post_test_save();
+    if (!circe_worker_post_test_save()) {
+        circe_status_banner_reset();
+        return false;
+    }
+    worker_mark_origin();
+    return true;
 }
 
 static bool post_rebuild(void)
 {
     circe_hud_set_subline(&s_hud, "Rebuilding...");
-    return circe_worker_post_rebuild_index();
+    if (!circe_worker_post_rebuild_index()) {
+        return false;
+    }
+    worker_mark_origin();
+    return true;
 }
 
 static bool post_reinit(void)
 {
     circe_hud_set_subline(&s_hud, "Reinitializing...");
-    return circe_worker_post_reinit_storage();
+    if (!circe_worker_post_reinit_storage()) {
+        return false;
+    }
+    worker_mark_origin();
+    return true;
 }
 
 static void open_memory_menu(void)
@@ -1107,7 +1202,12 @@ static bool post_load_timeline(circe_timeline_category_t category)
 {
     s_memory_category = category;
     ui_show_status_key(CIRCE_PATTERN_STATUS_LOADING_BANNER);
-    return circe_worker_post_load_timeline(category);
+    if (!circe_worker_post_load_timeline(category)) {
+        circe_status_banner_reset();
+        return false;
+    }
+    worker_mark_origin();
+    return true;
 }
 
 static bool post_load_memory_entry(void)
@@ -1116,8 +1216,13 @@ static bool post_load_memory_entry(void)
     if (!id || !id[0]) {
         return false;
     }
-    circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_STATUS_LOADING));
-    return circe_worker_post_load_entry(id);
+    ui_show_status_key(CIRCE_PATTERN_STATUS_LOADING_BANNER);
+    if (!circe_worker_post_load_entry(id)) {
+        circe_status_banner_reset();
+        return false;
+    }
+    worker_mark_origin();
+    return true;
 }
 
 static bool post_timeline_today(void)
@@ -1143,13 +1248,23 @@ static bool post_timeline_all(void)
 static bool post_load_patterns(void)
 {
     ui_show_status_key(CIRCE_PATTERN_PATTERNS_LOADING);
-    return circe_worker_post_load_patterns();
+    if (!circe_worker_post_load_patterns()) {
+        circe_status_banner_reset();
+        return false;
+    }
+    worker_mark_origin();
+    return true;
 }
 
 static bool post_load_body_map(void)
 {
     ui_show_status_key(CIRCE_PATTERN_BODY_MAP_LOADING);
-    return circe_worker_post_load_body_map();
+    if (!circe_worker_post_load_body_map()) {
+        circe_status_banner_reset();
+        return false;
+    }
+    worker_mark_origin();
+    return true;
 }
 
 static void pattern_browser_begin(int count)
@@ -1275,8 +1390,13 @@ static void body_map_browser_poll(void)
 
 static bool post_delete_review(void)
 {
-    circe_hud_set_subline(&s_hud, "Deleting...");
-    return circe_worker_post_delete_entry(s_review_id);
+    ui_show_status_key(CIRCE_PATTERN_STATUS_DELETING_BANNER);
+    if (!circe_worker_post_delete_entry(s_review_id)) {
+        circe_status_banner_reset();
+        return false;
+    }
+    worker_mark_origin();
+    return true;
 }
 
 static void refresh_strand_arc_from_blocks(circe_strand_block_t *blocks, int count)
@@ -1411,25 +1531,25 @@ static void dispatch_action(const char *id)
         go_step(CIRCE_FLOW_VOICE_CUES);
     } else if (strcmp(id, "voice_off") == 0) {
         circe_voice_set_mode(CIRCE_VOICE_MODE_OFF);
-        ui_show_status_timed(CIRCE_PATTERN_VOICE_CUES_OFF, 1200);
+        ui_show_status_timed(CIRCE_PATTERN_VOICE_CUES_OFF, 1000);
         go_step(CIRCE_FLOW_VOICE_CUES);
     } else if (strcmp(id, "voice_soft") == 0) {
         circe_voice_set_mode(CIRCE_VOICE_MODE_SOFT);
         if (!circe_voice_is_available()) {
-            ui_show_status_timed(CIRCE_PATTERN_STATUS_AUDIO_UNAVAILABLE, 2000);
+            ui_show_status_timed(CIRCE_PATTERN_STATUS_AUDIO_UNAVAILABLE, 1500);
         } else {
-            ui_show_status_timed(CIRCE_PATTERN_VOICE_ENABLED, 1200);
+            ui_show_status_timed(CIRCE_PATTERN_VOICE_ENABLED, 1000);
         }
         go_step(CIRCE_FLOW_VOICE_CUES);
     } else if (strcmp(id, "voice_test") == 0) {
         if (circe_voice_get_mode() != CIRCE_VOICE_MODE_SOFT) {
-            ui_show_status_timed(CIRCE_PATTERN_VOICE_CUES_OFF, 1500);
+            ui_show_status_timed(CIRCE_PATTERN_VOICE_CUES_OFF, 1000);
         } else {
             ui_show_status_key(CIRCE_PATTERN_VOICE_PLAYING_TONE);
             if (circe_voice_play_test_tone()) {
-                ui_show_status_timed(CIRCE_PATTERN_VOICE_TONE_SENT, 1200);
+                ui_show_status_timed(CIRCE_PATTERN_VOICE_TONE_SENT, 1000);
             } else {
-                ui_show_status_timed(CIRCE_PATTERN_STATUS_AUDIO_UNAVAILABLE, 2000);
+                ui_show_status_timed(CIRCE_PATTERN_STATUS_AUDIO_UNAVAILABLE, 1500);
             }
         }
         go_step(CIRCE_FLOW_VOICE_CUES);
@@ -1669,6 +1789,7 @@ void circe_ui_show_step(circe_flow_step_t step)
         return;
     }
     clear_content();
+    circe_status_banner_dismiss_indefinite();
     setup_encoder_group();
     apply_theme_to_shell();
     circe_hud_set_reset_mode(&s_hud, false);

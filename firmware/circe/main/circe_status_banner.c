@@ -10,10 +10,21 @@ static lv_obj_t *s_panel;
 static lv_obj_t *s_label;
 static lv_timer_t *s_hide_timer;
 
+static void stop_hide_timer(void)
+{
+    if (s_hide_timer) {
+        lv_timer_del(s_hide_timer);
+        s_hide_timer = NULL;
+    }
+}
+
 static void hide_timer_cb(lv_timer_t *timer)
 {
     (void)timer;
-    circe_status_banner_hide();
+    s_hide_timer = NULL;
+    if (s_panel) {
+        lv_obj_add_flag(s_panel, LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 void circe_status_banner_init(lv_obj_t *scr)
@@ -46,10 +57,7 @@ void circe_status_banner_show(const char *text)
     if (!s_panel || !s_label) {
         return;
     }
-    if (s_hide_timer) {
-        lv_timer_del(s_hide_timer);
-        s_hide_timer = NULL;
-    }
+    stop_hide_timer();
     lv_label_set_text(s_label, text ? text : "");
     lv_obj_clear_flag(s_panel, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(s_panel);
@@ -60,11 +68,16 @@ void circe_status_banner_hide(void)
     if (!s_panel) {
         return;
     }
-    if (s_hide_timer) {
-        lv_timer_del(s_hide_timer);
-        s_hide_timer = NULL;
-    }
+    stop_hide_timer();
     lv_obj_add_flag(s_panel, LV_OBJ_FLAG_HIDDEN);
+}
+
+void circe_status_banner_reset(void)
+{
+    stop_hide_timer();
+    if (s_panel) {
+        lv_obj_add_flag(s_panel, LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 bool circe_status_banner_visible(void)
@@ -72,10 +85,27 @@ bool circe_status_banner_visible(void)
     return s_panel && !lv_obj_has_flag(s_panel, LV_OBJ_FLAG_HIDDEN);
 }
 
+bool circe_status_banner_is_visible(void)
+{
+    return circe_status_banner_visible();
+}
+
+bool circe_status_banner_has_auto_hide(void)
+{
+    return s_hide_timer != NULL;
+}
+
+void circe_status_banner_dismiss_indefinite(void)
+{
+    if (!s_hide_timer && s_panel && !lv_obj_has_flag(s_panel, LV_OBJ_FLAG_HIDDEN)) {
+        lv_obj_add_flag(s_panel, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
 void circe_status_banner_show_timed(const char *text, uint32_t ms)
 {
     circe_status_banner_show(text);
-    if (ms > 0 && !s_hide_timer) {
+    if (ms > 0) {
         s_hide_timer = lv_timer_create(hide_timer_cb, ms, NULL);
         lv_timer_set_repeat_count(s_hide_timer, 1);
     }
