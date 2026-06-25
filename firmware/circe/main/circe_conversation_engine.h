@@ -23,6 +23,9 @@ typedef enum {
     CIRCE_FLOW_MORE,
     CIRCE_FLOW_APPEARANCE,
     CIRCE_FLOW_DIAGNOSTICS,
+    CIRCE_FLOW_TIME,
+    CIRCE_FLOW_TIME_EDIT_DATE,
+    CIRCE_FLOW_TIME_EDIT_TIME,
 } circe_flow_step_t;
 
 typedef struct {

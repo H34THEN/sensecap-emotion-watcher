@@ -10,6 +10,25 @@
 
 static bool s_reset_mode = true;
 
+static void style_telemetry_segment(lv_obj_t *arc, uint16_t start, uint16_t end, uint32_t color_hex, lv_opa_t opa)
+{
+    if (!arc) {
+        return;
+    }
+    lv_obj_set_size(arc, 400, 400);
+    lv_obj_align(arc, LV_ALIGN_CENTER, 0, 0);
+    lv_arc_set_mode(arc, LV_ARC_MODE_NORMAL);
+    lv_arc_set_bg_angles(arc, start, end);
+    lv_arc_set_angles(arc, start, end);
+    lv_obj_set_style_arc_width(arc, 3, LV_PART_MAIN);
+    lv_obj_set_style_arc_color(arc, circe_theme_color(color_hex), LV_PART_MAIN);
+    lv_obj_set_style_arc_opa(arc, opa, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(arc, 0, LV_PART_INDICATOR);
+    lv_obj_remove_style(arc, NULL, LV_PART_KNOB);
+    lv_obj_clear_flag(arc, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_bg_opa(arc, LV_OPA_TRANSP, 0);
+}
+
 static void style_arc_chrome(lv_obj_t *arc, uint16_t start, uint16_t end, uint32_t color_hex, lv_opa_t opa)
 {
     if (!arc) {
@@ -48,11 +67,14 @@ void circe_hud_set_reset_mode(circe_hud_t *hud, bool enabled)
     if (!hud) {
         return;
     }
-    set_hidden(hud->left_arc, enabled);
-    set_hidden(hud->right_arc, enabled);
-    set_hidden(hud->top_line, enabled);
-    set_hidden(hud->bottom_line, enabled);
+    set_hidden(hud->left_arc, true);
+    set_hidden(hud->right_arc, true);
+    set_hidden(hud->top_line, true);
+    set_hidden(hud->bottom_line, true);
     set_hidden(hud->status, enabled);
+    for (int i = 0; i < 4; i++) {
+        set_hidden(hud->telemetry[i], enabled);
+    }
     if (enabled) {
         lv_obj_clean(hud->top_arc);
     }
@@ -85,7 +107,7 @@ void circe_hud_create(lv_obj_t *scr, circe_hud_t *hud)
 
     hud->viewport = lv_obj_create(scr);
     lv_obj_set_size(hud->viewport, CIRCE_HUD_VIEWPORT_W, CIRCE_HUD_VIEWPORT_H);
-    lv_obj_align(hud->viewport, LV_ALIGN_CENTER, 0, -38);
+    lv_obj_align(hud->viewport, LV_ALIGN_TOP_MID, 0, 78);
     lv_obj_set_style_pad_all(hud->viewport, 8, 0);
     lv_obj_clear_flag(hud->viewport, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -131,6 +153,13 @@ void circe_hud_create(lv_obj_t *scr, circe_hud_t *hud)
     lv_label_set_long_mode(hud->status, LV_LABEL_LONG_WRAP);
     lv_obj_align(hud->status, LV_ALIGN_BOTTOM_MID, 0, -2);
 
+    const uint16_t seg_starts[] = {200, 250, 290, 330};
+    const uint16_t seg_ends[] = {230, 280, 320, 360};
+    for (int i = 0; i < 4; i++) {
+        hud->telemetry[i] = lv_arc_create(scr);
+        style_telemetry_segment(hud->telemetry[i], seg_starts[i], seg_ends[i], p->accent_muted, LV_OPA_20);
+    }
+
     circe_voice_state_ui_init(&hud->voice, hud->presence);
     circe_hud_apply_theme(hud);
     circe_hud_set_reset_mode(hud, true);
@@ -164,8 +193,69 @@ void circe_hud_apply_theme(circe_hud_t *hud)
     if (hud->actions) {
         lv_obj_set_style_bg_opa(hud->actions, LV_OPA_TRANSP, 0);
     }
+    for (int i = 0; i < 4; i++) {
+        if (hud->telemetry[i]) {
+            style_telemetry_segment(hud->telemetry[i], 200 + i * 50, 230 + i * 50, p->accent_muted, LV_OPA_20);
+        }
+    }
     circe_voice_state_ui_apply_theme(&hud->voice);
     circe_hud_set_reset_mode(hud, s_reset_mode);
+}
+
+void circe_hud_set_telemetry(circe_hud_t *hud, int active_segment)
+{
+    if (!hud) {
+        return;
+    }
+    const circe_theme_palette_t *p = circe_theme_get_palette();
+    const uint16_t seg_starts[] = {200, 250, 290, 330};
+    const uint16_t seg_ends[] = {230, 280, 320, 360};
+    for (int i = 0; i < 4; i++) {
+        if (!hud->telemetry[i]) {
+            continue;
+        }
+        lv_opa_t opa = (i == active_segment) ? LV_OPA_80 : LV_OPA_20;
+        uint32_t color = (i == active_segment) ? p->accent_primary : p->accent_muted;
+        style_telemetry_segment(hud->telemetry[i], seg_starts[i], seg_ends[i], color, opa);
+        lv_obj_clear_flag(hud->telemetry[i], LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+void circe_hud_show_terminal_shell(circe_hud_t *hud, const char *title, const char *status_line)
+{
+    if (!hud) {
+        return;
+    }
+    circe_hud_set_reset_mode(hud, false);
+    lv_obj_add_flag(hud->presence, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(hud->prompt, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(hud->heading, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(hud->response, LV_OBJ_FLAG_HIDDEN);
+    circe_hud_set_heading(hud, title ? title : "CIRCE");
+    circe_hud_set_response(hud, status_line ? status_line : "");
+    lv_obj_align(hud->heading, LV_ALIGN_TOP_MID, 0, 4);
+    lv_obj_align(hud->response, LV_ALIGN_TOP_MID, 0, 38);
+    lv_obj_set_style_text_align(hud->heading, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_text_align(hud->response, LV_TEXT_ALIGN_CENTER, 0);
+    circe_theme_style_hero(hud->heading);
+    circe_theme_style_status(hud->response);
+    circe_hud_set_subline(hud, "");
+    circe_hud_set_telemetry(hud, 0);
+    if (hud->viewport) {
+        lv_obj_set_style_bg_opa(hud->viewport, LV_OPA_TRANSP, 0);
+        lv_obj_set_style_border_width(hud->viewport, 0, 0);
+        lv_obj_set_size(hud->viewport, CIRCE_HUD_VIEWPORT_W, CIRCE_HUD_VIEWPORT_H);
+        lv_obj_align(hud->viewport, LV_ALIGN_TOP_MID, 0, 72);
+    }
+    if (hud->actions) {
+        lv_obj_set_size(hud->actions, 280, 150);
+        lv_obj_align(hud->actions, LV_ALIGN_BOTTOM_MID, 0, -36);
+    }
+}
+
+void circe_hud_show_terminal_prompt(circe_hud_t *hud, const char *status_line)
+{
+    circe_hud_show_terminal_shell(hud, "CIRCE", status_line);
 }
 
 lv_obj_t *circe_hud_strand_layer(const circe_hud_t *hud)

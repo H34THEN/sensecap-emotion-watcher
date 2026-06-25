@@ -8,6 +8,8 @@ idf_component_register(
         "circe_index.c"
         "circe_storage.c"
         "circe_storage_paths.c"
+        "circe_time.c"
+        "circe_time_picker.c"
         "circe_buf.c"
         "circe_save.c"
         "circe_theme.c"
@@ -18,6 +20,7 @@ idf_component_register(
         "circe_voice_state_ui.c"
         "circe_strand_cache.c"
         "circe_worker.c"
+        "circe_terminal.c"
         "circe_ui.c"
     INCLUDE_DIRS "."
     PRIV_REQUIRES sensecap-watcher cjson nvs_flash esp_io_expander esp_io_expander_pca95xx_16bit esp_lvgl_port sscma_client knob fatfs

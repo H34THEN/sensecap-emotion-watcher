@@ -72,7 +72,7 @@ static const lv_font_t *pick_montserrat(int preferred_px, int fallback_px)
 void circe_fonts_init(void)
 {
     s_font_default = LV_FONT_DEFAULT;
-    ESP_LOGI(TAG, "fonts: hero=32 prompt=24 button=20 caption=16");
+    ESP_LOGI(TAG, "fonts: hero=32 prompt=26 caption=18");
 }
 
 const lv_font_t *circe_fonts_get(circe_font_role_t role)
@@ -83,13 +83,13 @@ const lv_font_t *circe_fonts_get(circe_font_role_t role)
     case CIRCE_FONT_ROLE_HEADING:
         return pick_montserrat(28, 24);
     case CIRCE_FONT_ROLE_PROMPT:
-        return pick_montserrat(24, 20);
+        return pick_montserrat(28, 24);
     case CIRCE_FONT_ROLE_BODY:
         return pick_montserrat(18, 16);
     case CIRCE_FONT_ROLE_BUTTON:
-        return pick_montserrat(20, 18);
+        return pick_montserrat(28, 24);
     case CIRCE_FONT_ROLE_CAPTION:
-        return pick_montserrat(16, 16);
+        return pick_montserrat(18, 18);
     default:
         return pick_montserrat(18, 14);
     }
@@ -103,13 +103,13 @@ int circe_fonts_rendered_px(circe_font_role_t role)
     case CIRCE_FONT_ROLE_HEADING:
         return 28;
     case CIRCE_FONT_ROLE_PROMPT:
-        return 24;
+        return 26;
     case CIRCE_FONT_ROLE_BODY:
         return 18;
     case CIRCE_FONT_ROLE_BUTTON:
-        return 20;
+        return 26;
     case CIRCE_FONT_ROLE_CAPTION:
-        return 16;
+        return 18;
     default:
         return 18;
     }

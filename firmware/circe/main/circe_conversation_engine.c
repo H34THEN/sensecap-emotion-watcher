@@ -68,6 +68,12 @@ circe_pattern_key_t circe_conversation_prompt_for_step(const circe_conversation_
         return CIRCE_PATTERN_APPEARANCE_PROMPT;
     case CIRCE_FLOW_DIAGNOSTICS:
         return CIRCE_PATTERN_DIAG_TITLE;
+    case CIRCE_FLOW_TIME:
+        return CIRCE_PATTERN_TIME_TITLE;
+    case CIRCE_FLOW_TIME_EDIT_DATE:
+        return CIRCE_PATTERN_TIME_EDIT_DATE;
+    case CIRCE_FLOW_TIME_EDIT_TIME:
+        return CIRCE_PATTERN_TIME_EDIT_TIME;
     default:
         return CIRCE_PATTERN_GREET_FIRST_TODAY;
     }

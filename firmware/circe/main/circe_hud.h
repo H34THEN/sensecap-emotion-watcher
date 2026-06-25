@@ -27,6 +27,7 @@ typedef struct {
     lv_obj_t *status;
     lv_obj_t *top_line;
     lv_obj_t *bottom_line;
+    lv_obj_t *telemetry[4];
     circe_voice_state_ui_t voice;
 } circe_hud_t;
 
@@ -46,3 +47,6 @@ void circe_hud_show_companion_home(circe_hud_t *hud, const char *heading, const 
 void circe_hud_show_companion_prompt(circe_hud_t *hud, const char *prompt, const char *response);
 void circe_hud_show_home(circe_hud_t *hud, const char *heading, const char *subline);
 void circe_hud_show_prompt(circe_hud_t *hud, const char *prompt);
+void circe_hud_show_terminal_shell(circe_hud_t *hud, const char *title, const char *status_line);
+void circe_hud_show_terminal_prompt(circe_hud_t *hud, const char *status_line);
+void circe_hud_set_telemetry(circe_hud_t *hud, int active_segment);

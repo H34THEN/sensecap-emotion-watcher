@@ -2,29 +2,13 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 
 #include "cJSON.h"
+#include "circe_time.h"
 #include "esp_log.h"
 #include "esp_random.h"
 
 static const char *TAG = "circe_entry";
-
-static void iso8601_now(char *buf, size_t len)
-{
-    time_t now = time(NULL);
-    struct tm tm_utc;
-    gmtime_r(&now, &tm_utc);
-    strftime(buf, len, "%Y-%m-%dT%H:%M:%SZ", &tm_utc);
-}
-
-static void local_date_now(char *buf, size_t len)
-{
-    time_t now = time(NULL);
-    struct tm tm_local;
-    localtime_r(&now, &tm_local);
-    strftime(buf, len, "%Y-%m-%d", &tm_local);
-}
 
 void circe_entry_generate_id(circe_entry_t *entry)
 {
@@ -61,14 +45,12 @@ void circe_entry_init_defaults(circe_entry_t *entry, circe_entry_mode_t mode)
 
 void circe_entry_set_timestamp_now(circe_entry_t *entry)
 {
-    iso8601_now(entry->created_at, sizeof(entry->created_at));
-    iso8601_now(entry->updated_at, sizeof(entry->updated_at));
-    local_date_now(entry->local_date, sizeof(entry->local_date));
+    circe_time_fill_entry_timestamps(entry, true);
 }
 
 void circe_entry_touch_updated(circe_entry_t *entry)
 {
-    iso8601_now(entry->updated_at, sizeof(entry->updated_at));
+    circe_time_touch_entry_updated(entry);
 }
 
 const char *circe_entry_mode_str(circe_entry_mode_t mode)
@@ -98,7 +80,13 @@ bool circe_entry_to_json(const circe_entry_t *entry, char *out, size_t out_len)
     cJSON_AddStringToObject(root, "id", entry->id);
     cJSON_AddStringToObject(root, "created_at", entry->created_at);
     cJSON_AddStringToObject(root, "updated_at", entry->updated_at);
-    cJSON_AddStringToObject(root, "local_date", entry->local_date);
+    cJSON_AddStringToObject(root, "time_status", circe_time_is_set() ? "set" : "unset");
+    cJSON_AddStringToObject(root, "timestamp", entry->created_at);
+    if (entry->local_date[0]) {
+        cJSON_AddStringToObject(root, "local_date", entry->local_date);
+    } else {
+        cJSON_AddNullToObject(root, "local_date");
+    }
     cJSON_AddStringToObject(root, "timezone_at_capture", entry->timezone_at_capture);
     cJSON_AddStringToObject(root, "entry_mode", circe_entry_mode_str(entry->entry_mode));
     cJSON *im = cJSON_CreateObject();

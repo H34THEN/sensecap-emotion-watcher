@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "circe_storage.h"
+#include "circe_time.h"
 #include "esp_log.h"
 
 static const char *TAG = "circe_save";
@@ -76,7 +77,8 @@ bool circe_entry_prepare_for_save(circe_entry_t *entry)
     if (entry->id[0] == '\0') {
         circe_entry_generate_id(entry);
     }
-    if (entry->created_at[0] == '\0' || entry->local_date[0] == '\0') {
+    if (entry->created_at[0] == '\0' || (!circe_time_is_set() && entry->local_date[0] == '\0') ||
+        (circe_time_is_set() && entry->local_date[0] == '\0')) {
         circe_entry_set_timestamp_now(entry);
     } else {
         circe_entry_touch_updated(entry);

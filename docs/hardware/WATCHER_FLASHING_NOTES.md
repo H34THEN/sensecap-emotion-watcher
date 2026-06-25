@@ -116,4 +116,27 @@ FAT is case-insensitive; PC may show `CIRCE/INDEX` while logs show `/sdcard/circ
 
 Storage readiness requires **probe PASS** (write/read/delete `storage_probe.tmp`), not just mount.
 
+---
+
+## Date / time (RTC phase)
+
+- Boot calls `bsp_rtc_init()` then `circe_time_init()`.
+- If system/RTC year ≥ 2020 → time **SET**; entries use `/sdcard/CIRCE/ENTRIES/YYYYMMDD/`.
+- If unset → entries use `/sdcard/CIRCE/ENTRIES/UNSET/`.
+- Legacy entries under `19700101/` remain readable (review scans all folders).
+- Set time: Settings → **TIME** → SET DATE / SET TIME → **SAVE TIME** (stored in NVS).
+- After reboot, manual time is restored from NVS when RTC is still invalid.
+
+See `docs/time/RTC_TIME_PLAN.md`.
+
+## Settings NVS (theme + time)
+
+- Boot calls `nvs_flash_init()` in `main.c` before theme/time modules.
+- Theme: namespace `circe_ui`, key `theme_id`.
+- Time: namespace `circe_time` (manual backup).
+- Does **not** read or write `nvsfactory` (0x9000).
+- If theme save fails, check monitor for `esp_err_to_name` — was `ESP_ERR_NVS_NOT_INITIALIZED` before NVS init fix.
+
+See `docs/bugs/THEME_NVS_SAVE_WARNING.md`.
+
 If `app-flash` fails with port busy, close serial monitor on `/dev/ttyACM1` and retry.

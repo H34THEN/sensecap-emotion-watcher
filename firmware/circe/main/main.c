@@ -1,4 +1,5 @@
 #include "esp_log.h"
+#include "nvs_flash.h"
 #include "sensecap-watcher.h"
 
 #include "circe_conversation_engine.h"
@@ -6,15 +7,40 @@
 #include "circe_strand_cache.h"
 #include "circe_theme.h"
 #include "circe_fonts.h"
+#include "circe_time.h"
 #include "circe_ui.h"
 
 static const char *TAG = "circe_main";
 
 static circe_conversation_engine_t s_engine;
 
+static esp_err_t circe_nvs_init(void)
+{
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_LOGW(TAG, "NVS partition needs erase: %s", esp_err_to_name(ret));
+        ret = nvs_flash_erase();
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "nvs_flash_erase failed: %s", esp_err_to_name(ret));
+            return ret;
+        }
+        ret = nvs_flash_init();
+    }
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "nvs_flash_init failed: %s", esp_err_to_name(ret));
+    } else {
+        ESP_LOGI(TAG, "NVS initialized");
+    }
+    return ret;
+}
+
 void app_main(void)
 {
     ESP_LOGI(TAG, "CIRCE standalone MVP starting");
+
+    if (circe_nvs_init() != ESP_OK) {
+        ESP_LOGW(TAG, "NVS unavailable — theme/time settings may not persist");
+    }
 
     esp_io_expander_handle_t io_expander = bsp_io_expander_init();
     if (!io_expander) {
@@ -29,6 +55,7 @@ void app_main(void)
     }
 
     bsp_rtc_init();
+    circe_time_init();
 
     circe_conversation_init(&s_engine);
     s_engine.storage_ready = circe_storage_init();

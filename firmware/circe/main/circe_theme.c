@@ -74,18 +74,13 @@ static const circe_theme_palette_t s_palettes[CIRCE_THEME_COUNT] = {
 static void style_focus_ring(lv_obj_t *obj)
 {
     const circe_theme_palette_t *p = circe_theme_get_palette();
-    lv_obj_set_style_border_width(obj, 2, LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_border_color(obj, circe_theme_color(p->focus), LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_border_width(obj, 2, LV_STATE_FOCUSED);
-    lv_obj_set_style_border_color(obj, circe_theme_color(p->focus), LV_STATE_FOCUSED);
-    lv_obj_set_style_outline_width(obj, 1, LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_outline_color(obj, circe_theme_color(p->accent_secondary), LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_outline_opa(obj, LV_OPA_40, LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_outline_width(obj, 1, LV_STATE_FOCUSED);
-    lv_obj_set_style_outline_color(obj, circe_theme_color(p->accent_secondary), LV_STATE_FOCUSED);
-    lv_obj_set_style_outline_opa(obj, LV_OPA_40, LV_STATE_FOCUSED);
-    lv_obj_set_style_bg_color(obj, circe_theme_color(p->surface_alt), LV_STATE_FOCUS_KEY);
-    lv_obj_set_style_bg_color(obj, circe_theme_color(p->surface_alt), LV_STATE_FOCUSED);
+    lv_obj_set_style_border_width(obj, 0, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_border_width(obj, 0, LV_STATE_FOCUSED);
+    lv_obj_set_style_outline_width(obj, 0, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_outline_width(obj, 0, LV_STATE_FOCUSED);
+    lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, LV_STATE_FOCUSED);
+    (void)p;
 }
 
 lv_color_t circe_theme_color(uint32_t hex)
@@ -121,30 +116,53 @@ bool circe_theme_is_high_visibility(void)
     return s_active == CIRCE_THEME_HIGH_VISIBILITY;
 }
 
-static bool save_theme_id(circe_theme_id_t id)
+static esp_err_t save_theme_id(circe_theme_id_t id)
 {
     nvs_handle_t h;
-    if (nvs_open(NVS_NS, NVS_READWRITE, &h) != ESP_OK) {
-        return false;
+    esp_err_t err = nvs_open(NVS_NS, NVS_READWRITE, &h);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "theme save nvs_open(%s) failed: %s", NVS_NS, esp_err_to_name(err));
+        return err;
     }
-    esp_err_t err = nvs_set_u8(h, NVS_KEY, (uint8_t)id);
-    if (err == ESP_OK) {
-        err = nvs_commit(h);
+    err = nvs_set_u8(h, NVS_KEY, (uint8_t)id);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "theme save nvs_set_u8(%s=%u) failed: %s", NVS_KEY, (unsigned)id, esp_err_to_name(err));
+        nvs_close(h);
+        return err;
+    }
+    err = nvs_commit(h);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "theme save nvs_commit failed: %s", esp_err_to_name(err));
+    } else {
+        ESP_LOGI(TAG, "theme saved to NVS: %s (%u)", s_palettes[id].display_name, (unsigned)id);
     }
     nvs_close(h);
-    return err == ESP_OK;
+    return err;
 }
 
 static circe_theme_id_t load_theme_id(void)
 {
     nvs_handle_t h;
-    if (nvs_open(NVS_NS, NVS_READONLY, &h) != ESP_OK) {
+    esp_err_t err = nvs_open(NVS_NS, NVS_READONLY, &h);
+    if (err != ESP_OK) {
+        if (err != ESP_ERR_NVS_NOT_FOUND) {
+            ESP_LOGW(TAG, "theme load nvs_open(%s) failed: %s", NVS_NS, esp_err_to_name(err));
+        }
         return CIRCE_THEME_GHOST_IN_THE_CODE;
     }
     uint8_t id = CIRCE_THEME_GHOST_IN_THE_CODE;
-    nvs_get_u8(h, NVS_KEY, &id);
+    err = nvs_get_u8(h, NVS_KEY, &id);
     nvs_close(h);
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGI(TAG, "theme load: no saved theme, using default");
+        return CIRCE_THEME_GHOST_IN_THE_CODE;
+    }
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "theme load nvs_get_u8(%s) failed: %s", NVS_KEY, esp_err_to_name(err));
+        return CIRCE_THEME_GHOST_IN_THE_CODE;
+    }
     if (id >= CIRCE_THEME_COUNT) {
+        ESP_LOGW(TAG, "theme load: invalid id %u, using default", (unsigned)id);
         return CIRCE_THEME_GHOST_IN_THE_CODE;
     }
     return (circe_theme_id_t)id;
@@ -169,8 +187,9 @@ bool circe_theme_set_active(circe_theme_id_t id)
     }
     s_active = id;
     s_committed = id;
-    if (!save_theme_id(id)) {
-        ESP_LOGW(TAG, "failed to save theme_id");
+    esp_err_t save_err = save_theme_id(id);
+    if (save_err != ESP_OK) {
+        ESP_LOGW(TAG, "theme active in RAM only (NVS save failed: %s)", esp_err_to_name(save_err));
     }
     ESP_LOGI(TAG, "theme set: %s", s_palettes[s_active].display_name);
     return true;
@@ -208,33 +227,22 @@ void circe_theme_apply_screen(lv_obj_t *scr)
 
 void circe_theme_style_viewport(lv_obj_t *obj)
 {
-    const circe_theme_palette_t *p = circe_theme_get_palette();
-    lv_obj_set_style_bg_color(obj, circe_theme_color(p->surface), 0);
-    lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_width(obj, 1, 0);
-    lv_obj_set_style_border_color(obj, circe_theme_color(p->border), 0);
-    lv_obj_set_style_border_opa(obj, LV_OPA_50, 0);
-    lv_obj_set_style_radius(obj, p->btn_radius + 2, 0);
+    lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(obj, 0, 0);
     lv_obj_set_style_shadow_width(obj, 0, 0);
+    lv_obj_set_style_radius(obj, 0, 0);
 }
 
 void circe_theme_style_primary_button(lv_obj_t *btn)
 {
-    const circe_theme_palette_t *p = circe_theme_get_palette();
-    lv_obj_set_style_radius(btn, 12, 0);
-    lv_obj_set_style_bg_color(btn, circe_theme_color(p->surface), 0);
-    lv_obj_set_style_bg_opa(btn, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_width(btn, 2, 0);
-    lv_obj_set_style_border_color(btn, circe_theme_color(p->accent_primary), 0);
-    lv_obj_set_style_border_opa(btn, LV_OPA_80, 0);
-    style_focus_ring(btn);
+    circe_theme_style_button(btn);
 }
 
 void circe_theme_style_action_label(lv_obj_t *lbl, bool primary)
 {
     const circe_theme_palette_t *p = circe_theme_get_palette();
     lv_obj_set_style_text_color(lbl, circe_theme_color(p->text), 0);
-    circe_fonts_apply_label(lbl, primary ? CIRCE_FONT_ROLE_PROMPT : CIRCE_FONT_ROLE_BUTTON);
+    circe_fonts_apply_label(lbl, primary ? CIRCE_FONT_ROLE_PROMPT : CIRCE_FONT_ROLE_PROMPT);
     if (circe_theme_is_high_visibility()) {
         lv_obj_set_style_text_font(lbl, circe_fonts_get(CIRCE_FONT_ROLE_PROMPT), 0);
     }
@@ -251,14 +259,11 @@ void circe_theme_style_hud_line(lv_obj_t *obj)
 
 void circe_theme_style_button(lv_obj_t *btn)
 {
-    const circe_theme_palette_t *p = circe_theme_get_palette();
-    lv_obj_set_height(btn, p->btn_min_h);
-    lv_obj_set_style_radius(btn, p->btn_radius, 0);
-    lv_obj_set_style_bg_color(btn, circe_theme_color(p->surface), 0);
-    lv_obj_set_style_bg_opa(btn, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_width(btn, 1, 0);
-    lv_obj_set_style_border_color(btn, circe_theme_color(p->border), 0);
-    lv_obj_set_style_border_opa(btn, LV_OPA_50, 0);
+    lv_obj_set_height(btn, 30);
+    lv_obj_set_style_radius(btn, 0, 0);
+    lv_obj_set_style_bg_opa(btn, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(btn, 0, 0);
+    lv_obj_set_style_shadow_width(btn, 0, 0);
     style_focus_ring(btn);
 }
 
@@ -272,7 +277,7 @@ void circe_theme_style_subline(lv_obj_t *lbl)
     const circe_theme_palette_t *p = circe_theme_get_palette();
     lv_obj_set_style_text_color(lbl, circe_theme_color(p->muted), 0);
     lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, 0);
-    circe_fonts_apply_label(lbl, CIRCE_FONT_ROLE_BUTTON);
+    circe_fonts_apply_label(lbl, CIRCE_FONT_ROLE_CAPTION);
 }
 
 void circe_theme_style_heading(lv_obj_t *lbl)
@@ -318,11 +323,9 @@ void circe_theme_style_status(lv_obj_t *lbl)
 void circe_theme_style_card(lv_obj_t *obj)
 {
     const circe_theme_palette_t *p = circe_theme_get_palette();
-    lv_obj_set_style_bg_color(obj, circe_theme_color(p->surface), 0);
-    lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_width(obj, 1, 0);
-    lv_obj_set_style_border_color(obj, circe_theme_color(p->border), 0);
-    lv_obj_set_style_radius(obj, p->btn_radius, 0);
+    lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(obj, 0, 0);
+    lv_obj_set_style_radius(obj, 0, 0);
     lv_obj_set_style_text_color(obj, circe_theme_color(p->text), 0);
 }
 

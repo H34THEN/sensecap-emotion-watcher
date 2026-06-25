@@ -25,11 +25,11 @@ User completes save flow (any `entry_mode`).
 1. Validate against `emotion-entry.schema.json` (+ extensions)
 2. Assign `id`, `created_at` (UTC), `device_id`
 3. Apply defaults: `training_ok=false`, `private_locked=true`
-4. Write canonical JSON: `entries/YYYY-MM-DD/<uuid>.json` (atomic temp → rename)
-5. Insert SQLite index row
-6. Append to sync queue **only if** `!private_locked && sync_enabled`
-7. Trigger daily rollup job (async)
-8. Delete short-term draft
+4. Write canonical JSON on SD card (atomic `.TMP` → `.JSN` rename):
+   - **Time set:** `/sdcard/CIRCE/ENTRIES/YYYYMMDD/<id>.JSN`
+   - **Time unset:** `/sdcard/CIRCE/ENTRIES/UNSET/<id>.JSN`
+   - **Legacy:** `/sdcard/CIRCE/ENTRIES/19700101/` still supported for load/review
+5. Append index line (best-effort) to `INDEX/entry_index.jsonl`
 
 ### Initial state flags
 
@@ -38,7 +38,17 @@ User completes save flow (any `entry_mode`).
 | `lifecycle_state` | `active` |
 | `deleted_at` | null |
 | `exported_at` | null |
-| `sync_status` | `local_only` or `queued` |
+| `sync_status` | `local_only` (standalone firmware) |
+
+### Time metadata (firmware v1.1+)
+
+| Field | Set | Unset |
+|-------|-----|-------|
+| `time_status` | `"set"` | `"unset"` |
+| `local_date` | `YYYY-MM-DD` | `null` |
+| `timestamp` | ISO-8601 UTC | `"unset"` |
+
+Set time via Settings → TIME on device. Manual values persist in NVS across reboot when RTC invalid.
 
 ### Circe
 

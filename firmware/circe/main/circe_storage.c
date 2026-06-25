@@ -14,6 +14,7 @@
 #include "circe_buf.h"
 #include "circe_index.h"
 #include "circe_storage_paths.h"
+#include "circe_time.h"
 #include "esp_log.h"
 #include "esp_vfs_fat.h"
 
@@ -326,7 +327,10 @@ static bool build_entry_file_path(const char *date_folder, const char *id, const
 static void entry_json_path(const circe_entry_t *entry, char *path, size_t len)
 {
     char day[16];
-    circe_storage_path_entry_folder(entry->local_date, day, sizeof(day));
+    if (!circe_time_entry_storage_folder(entry, day, sizeof(day))) {
+        path[0] = '\0';
+        return;
+    }
     if (!circe_storage_path_join(path, len, circe_storage_path_entries(), day)) {
         path[0] = '\0';
         return;
@@ -639,10 +643,14 @@ bool circe_entry_save_json_atomic(const circe_entry_t *entry)
 
     char dir_path[96];
     char day_folder[16];
-    circe_storage_path_entry_folder(entry->local_date, day_folder, sizeof(day_folder));
+    if (!circe_time_entry_storage_folder(entry, day_folder, sizeof(day_folder))) {
+        circe_storage_set_last_error("Missing entry folder");
+        ESP_LOGE(TAG, "save_json: folder resolve failed");
+        return false;
+    }
     if (day_folder[0] == '\0') {
         circe_storage_set_last_error("Missing local_date");
-        ESP_LOGE(TAG, "save_json: missing local_date");
+        ESP_LOGE(TAG, "save_json: missing entry folder");
         return false;
     }
     if (!circe_storage_path_join(dir_path, sizeof(dir_path), circe_storage_path_entries(), day_folder)) {
