@@ -796,7 +796,6 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
         } else if (c->timeline_empty) {
             go_step(CIRCE_FLOW_MEMORY_EMPTY);
         } else {
-            circe_memory_browser_begin(&s_memory_browser, c->timeline_count, 0);
             go_step(CIRCE_FLOW_MEMORY_BROWSE);
         }
         break;
@@ -823,7 +822,6 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
         } else if (c->patterns.no_patterns || c->patterns.count <= 0) {
             go_step(CIRCE_FLOW_PATTERNS_NONE);
         } else {
-            pattern_browser_begin(c->patterns.count);
             go_step(CIRCE_FLOW_PATTERNS);
         }
         break;
@@ -839,7 +837,6 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
         } else if (s_body_map_summary.state == CIRCE_BODY_MAP_STATE_EMPTY) {
             go_step(CIRCE_FLOW_BODY_MAP_EMPTY);
         } else {
-            body_map_browser_begin();
             go_step(CIRCE_FLOW_BODY_MAP);
         }
         break;
@@ -1732,6 +1729,7 @@ void circe_ui_show_step(circe_flow_step_t step)
     case CIRCE_FLOW_PATTERNS:
         setup_terminal_shell(CIRCE_FLOW_MEMORY_MENU, "patterns");
         circe_terminal_nav_enable(true);
+        pattern_browser_begin(s_patterns_result.count);
         pattern_browser_refresh();
         s_nav_back_step = CIRCE_FLOW_MEMORY_MENU;
         create_scroll_panel();
@@ -1792,6 +1790,7 @@ void circe_ui_show_step(circe_flow_step_t step)
         setup_terminal_shell(CIRCE_FLOW_MEMORY_MENU, "body map");
         show_terminal_prompt_text(circe_copy_get(CIRCE_PATTERN_BODY_MAP_TITLE));
         circe_terminal_nav_enable(true);
+        body_map_browser_begin();
         body_map_browser_refresh();
         s_nav_back_step = CIRCE_FLOW_MEMORY_MENU;
         create_scroll_panel();
@@ -1833,10 +1832,13 @@ void circe_ui_show_step(circe_flow_step_t step)
         break;
     }
 
-    case CIRCE_FLOW_MEMORY_BROWSE:
+    case CIRCE_FLOW_MEMORY_BROWSE: {
+        const circe_timeline_cache_t *cache = circe_timeline_get_cache();
+        int count = cache ? cache->count : 0;
         setup_terminal_shell(CIRCE_FLOW_MEMORY_MENU, circe_timeline_category_title(s_memory_category));
         circe_terminal_nav_enable(false);
         circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_MEMORY_BROWSE_HINT));
+        circe_memory_browser_begin(&s_memory_browser, count, 0);
         circe_memory_browser_refresh(&s_memory_browser, &s_feed, &s_hud);
         s_nav_back_step = CIRCE_FLOW_MEMORY_MENU;
         create_scroll_panel();
@@ -1845,6 +1847,7 @@ void circe_ui_show_step(circe_flow_step_t step)
         add_back_btn(CIRCE_FLOW_MEMORY_MENU);
         focus_first_obj(s_first_row);
         break;
+    }
 
     case CIRCE_FLOW_MEMORY_EMPTY: {
         setup_terminal_shell(CIRCE_FLOW_MEMORY_MENU, circe_timeline_category_title(s_memory_category));
