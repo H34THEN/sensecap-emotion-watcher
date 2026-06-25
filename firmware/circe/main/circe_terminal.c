@@ -149,8 +149,8 @@ void circe_terminal_feed_init(circe_terminal_feed_t *feed, lv_obj_t *parent)
     }
     ESP_LOGI(TAG, "terminal_feed_create feed=%p panel=%p parent=%p", (void *)feed, (void *)feed->panel, (void *)parent);
 
-    lv_obj_set_size(feed->panel, 252, CIRCE_TERMINAL_FEED_PANEL_H);
-    lv_obj_align(feed->panel, LV_ALIGN_TOP_MID, 0, CIRCE_TERMINAL_FEED_Y_OFS);
+    lv_obj_set_size(feed->panel, CIRCE_UI_TERMINAL_FEED_PANEL_W, CIRCE_UI_TERMINAL_FEED_PANEL_H);
+    lv_obj_align(feed->panel, LV_ALIGN_TOP_MID, 0, CIRCE_UI_TERMINAL_FEED_Y_OFS);
     lv_obj_set_style_bg_opa(feed->panel, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(feed->panel, 0, 0);
     lv_obj_set_style_pad_all(feed->panel, 0, 0);
@@ -162,9 +162,10 @@ void circe_terminal_feed_init(circe_terminal_feed_t *feed, lv_obj_t *parent)
             ESP_LOGE(TAG, "terminal_feed_create: line %d create failed", i);
             continue;
         }
-        lv_obj_set_width(feed->lines[i], 244);
+        lv_obj_set_width(feed->lines[i], CIRCE_UI_TERMINAL_LINE_W);
         lv_label_set_long_mode(feed->lines[i], LV_LABEL_LONG_DOT);
-        lv_obj_align(feed->lines[i], LV_ALIGN_TOP_LEFT, 4, i * 28);
+        lv_obj_align(feed->lines[i], LV_ALIGN_TOP_LEFT, CIRCE_UI_TERMINAL_LINE_X_PAD,
+                     i * CIRCE_UI_TERMINAL_LINE_Y_STEP);
         lv_obj_add_flag(feed->lines[i], LV_OBJ_FLAG_HIDDEN);
         circe_fonts_apply_label(feed->lines[i], CIRCE_FONT_ROLE_PROMPT);
         lv_obj_set_style_text_align(feed->lines[i], LV_TEXT_ALIGN_LEFT, 0);
@@ -180,7 +181,7 @@ void circe_terminal_feed_init(circe_terminal_feed_t *feed, lv_obj_t *parent)
     circe_fonts_apply_label(feed->cursor, CIRCE_FONT_ROLE_PROMPT);
     const circe_theme_palette_t *p = circe_theme_get_palette();
     lv_obj_set_style_text_color(feed->cursor, circe_theme_color(p->accent_primary), 0);
-    lv_obj_align(feed->cursor, LV_ALIGN_BOTTOM_LEFT, 4, -2);
+    lv_obj_align(feed->cursor, LV_ALIGN_BOTTOM_LEFT, CIRCE_UI_TERMINAL_LINE_X_PAD, CIRCE_UI_TERMINAL_CURSOR_Y_OFS);
     lv_obj_add_flag(feed->cursor, LV_OBJ_FLAG_HIDDEN);
 }
 
@@ -299,7 +300,7 @@ lv_obj_t *circe_terminal_add_row(lv_obj_t *parent, const char *label, const char
     circe_terminal_style_row_label(lbl, false);
     lv_obj_align(lbl, LV_ALIGN_LEFT_MID, 0, 0);
 
-    lv_obj_align(row, LV_ALIGN_TOP_MID, 0, stack_index * (CIRCE_TERMINAL_ROW_H + 2));
+    lv_obj_align(row, LV_ALIGN_TOP_MID, 0, stack_index * (CIRCE_UI_TERMINAL_ROW_H + CIRCE_UI_TERMINAL_BTN_ROW_GAP));
     if (group) {
         lv_group_add_obj(group, row);
     }

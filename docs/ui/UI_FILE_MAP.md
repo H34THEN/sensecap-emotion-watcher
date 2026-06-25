@@ -6,6 +6,51 @@ Reference for manual visual layout and styling edits. Paths are relative to `fir
 
 ---
 
+## START HERE FOR MANUAL UI EDITING
+
+1. **`firmware/circe/main/circe_ui_tokens.h`** — positions, sizes, spacing (edit this first)
+2. **`circe_theme.c/h`** — palette colors, button radius/height
+3. **`circe_selector.c/h`** — single-focus menu behavior (not just layout)
+4. **`circe_status_banner.c/h`** — magenta banner lifecycle + dimensions
+5. **`circe_terminal.c/h`** — terminal feed layout
+6. **`circe_color_picker.c/h`** — color field canvas
+7. **`circe_regulation.c/h`** — regulation visuals
+8. **Avoid** worker/storage files unless debugging behavior
+
+Workflow: `docs/ui/MANUAL_UI_EDITING_WORKFLOW.md`
+
+### Screen-by-screen editing map
+
+| Screen | Main layout file | Visual tokens | Copy file | Safe to edit |
+| ------ | ---------------- | ------------- | --------- | ------------ |
+| Home | `circe_home_wheel.c`, `circe_ui.c` | `CIRCE_UI_HOME_*` | `circe_copy.c` | Yes — tokens |
+| Review menu | `circe_selector.c`, `circe_ui.c` | `CIRCE_UI_SELECTOR_*` | `circe_ui.c` labels | Yes — tokens |
+| Today browser | `circe_memory_browser.c`, `circe_terminal.c` | `CIRCE_UI_TERMINAL_*` | `circe_timeline.c` | Yes — feed layout |
+| Entry detail | `circe_ui.c`, terminal | `CIRCE_UI_TERMINAL_*`, `CIRCE_UI_CONTENT_*` | `circe_copy.c` | Partial — buttons in ui.c |
+| Patterns | `circe_patterns.c`, `circe_ui.c` | `CIRCE_UI_TERMINAL_*` | `circe_copy.c` | Yes — feed |
+| Body Map | `circe_body_map.c`, `circe_ui.c` | `CIRCE_UI_TERMINAL_*` | `circe_copy.c` | Yes — feed |
+| Body Check-In | `circe_ui.c`, `circe_selector.c` | `CIRCE_UI_SELECTOR_*`, `CIRCE_UI_CONTENT_*` | `circe_copy.c` | Yes — tokens |
+| Sensation | `circe_ui.c`, `circe_selector.c` | `CIRCE_UI_SELECTOR_*` | `circe_copy.c` | Yes |
+| Intensity | `circe_ui.c` slider | `CIRCE_UI_CONTENT_*` | `circe_copy.c` | Partial — slider in ui.c |
+| Tone | `circe_ui.c`, `circe_selector.c` | `CIRCE_UI_SELECTOR_*` | `circe_copy.c` | Yes |
+| Color Field | `circe_color_picker.c` | `CIRCE_UI_COLOR_*` | `circe_copy.c` | Yes |
+| Color Presets | `circe_ui.c` | `CIRCE_UI_CONTENT_*` | `circe_copy.c` | Partial |
+| Reflection | `circe_reflection.c`, `circe_ui.c` | `CIRCE_UI_TERMINAL_*` | `circe_copy.c` | Yes — feed |
+| Photo prompt | `circe_photo.c`, `circe_ui.c` | `CIRCE_UI_CONTENT_*` | `circe_copy.c` | Partial |
+| Regulation menu | `circe_selector.c`, `circe_ui.c` | `CIRCE_UI_SELECTOR_*` | `circe_ui.c` | Yes |
+| Breathing | `circe_regulation.c` | `CIRCE_UI_REG_*` | `circe_copy.c` | Yes — not timers |
+| 5-4-3-2-1 | `circe_regulation.c` | `CIRCE_UI_REG_STEP_*` | `circe_copy.c` | Yes |
+| Sensory Reset | `circe_regulation.c` | `CIRCE_UI_REG_STEP_*` | `circe_copy.c` | Yes |
+| Bilateral Tap | `circe_regulation.c` | `CIRCE_UI_REG_DOT_*` | `circe_copy.c` | Yes |
+| Settings | `circe_selector.c`, `circe_ui.c` | `CIRCE_UI_SELECTOR_*` | `circe_ui.c` | Yes |
+| Voice Cues | `circe_selector.c`, `circe_voice.c` | `CIRCE_UI_SELECTOR_*`, banner | `circe_copy.c` | Yes |
+| Diagnostics | `circe_selector.c`, `circe_ui.c` | `CIRCE_UI_SELECTOR_*` | `circe_ui.c` | Yes |
+| Status Banner | `circe_status_banner.c` | `CIRCE_UI_STATUS_BANNER_*` | `circe_copy.c` | Yes |
+
+**Banner lifecycle:** fixed in RC1 — banners clear on completion/navigation. If stuck, see `docs/ui/RC1_VISUAL_POLISH_PASS.md`.
+
+---
+
 ## Global UI / Navigation
 
 | File | Owns | Safe to tune | Do not edit casually |

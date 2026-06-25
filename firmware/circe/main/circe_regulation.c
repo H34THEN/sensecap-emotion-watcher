@@ -6,6 +6,7 @@
 #include "circe_copy.h"
 #include "circe_fonts.h"
 #include "circe_theme.h"
+#include "circe_ui_tokens.h"
 #include "circe_voice.h"
 #include "esp_log.h"
 
@@ -519,7 +520,7 @@ static void build_breath_ui(lv_obj_t *parent)
     const circe_theme_palette_t *p = circe_theme_get_palette();
 
     s_reg.root = lv_obj_create(parent);
-    lv_obj_set_size(s_reg.root, 260, 200);
+    lv_obj_set_size(s_reg.root, CIRCE_UI_REG_ROOT_W, CIRCE_UI_REG_BREATH_ROOT_H);
     lv_obj_align(s_reg.root, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_set_style_bg_opa(s_reg.root, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(s_reg.root, 0, 0);
@@ -527,8 +528,8 @@ static void build_breath_ui(lv_obj_t *parent)
     lv_obj_clear_flag(s_reg.root, LV_OBJ_FLAG_SCROLLABLE);
 
     s_reg.ring = lv_arc_create(s_reg.root);
-    lv_obj_set_size(s_reg.ring, 120, 120);
-    lv_obj_align(s_reg.ring, LV_ALIGN_TOP_MID, 0, 8);
+    lv_obj_set_size(s_reg.ring, CIRCE_UI_REG_RING_SIZE, CIRCE_UI_REG_RING_SIZE);
+    lv_obj_align(s_reg.ring, LV_ALIGN_TOP_MID, 0, CIRCE_UI_REG_RING_Y);
     lv_arc_set_mode(s_reg.ring, LV_ARC_MODE_NORMAL);
     lv_arc_set_bg_angles(s_reg.ring, 0, 360);
     lv_arc_set_angles(s_reg.ring, 0, 360);
@@ -538,21 +539,21 @@ static void build_breath_ui(lv_obj_t *parent)
     lv_obj_clear_flag(s_reg.ring, LV_OBJ_FLAG_CLICKABLE);
 
     s_reg.orb = lv_obj_create(s_reg.root);
-    lv_obj_set_size(s_reg.orb, 48, 48);
-    lv_obj_align(s_reg.orb, LV_ALIGN_TOP_MID, 0, 44);
+    lv_obj_set_size(s_reg.orb, CIRCE_UI_REG_ORB_SIZE, CIRCE_UI_REG_ORB_SIZE);
+    lv_obj_align(s_reg.orb, LV_ALIGN_TOP_MID, 0, CIRCE_UI_REG_ORB_Y);
     lv_obj_set_style_radius(s_reg.orb, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_border_width(s_reg.orb, 1, 0);
     lv_obj_set_style_border_color(s_reg.orb, circe_theme_color(p->focus), 0);
     lv_obj_clear_flag(s_reg.orb, LV_OBJ_FLAG_CLICKABLE);
 
     s_reg.phase_lbl = lv_label_create(s_reg.root);
-    lv_obj_set_width(s_reg.phase_lbl, 240);
-    lv_obj_align(s_reg.phase_lbl, LV_ALIGN_TOP_MID, 0, 128);
+    lv_obj_set_width(s_reg.phase_lbl, CIRCE_UI_REG_LABEL_W);
+    lv_obj_align(s_reg.phase_lbl, LV_ALIGN_TOP_MID, 0, CIRCE_UI_REG_PHASE_Y);
     style_prompt_label(s_reg.phase_lbl);
 
     s_reg.count_lbl = lv_label_create(s_reg.root);
-    lv_obj_set_width(s_reg.count_lbl, 240);
-    lv_obj_align(s_reg.count_lbl, LV_ALIGN_TOP_MID, 0, 158);
+    lv_obj_set_width(s_reg.count_lbl, CIRCE_UI_REG_LABEL_W);
+    lv_obj_align(s_reg.count_lbl, LV_ALIGN_TOP_MID, 0, CIRCE_UI_REG_COUNT_Y);
     circe_fonts_apply_label(s_reg.count_lbl, CIRCE_FONT_ROLE_HERO);
     lv_obj_set_style_text_color(s_reg.count_lbl, circe_theme_color(p->text), 0);
     lv_obj_set_style_text_align(s_reg.count_lbl, LV_TEXT_ALIGN_CENTER, 0);
@@ -563,7 +564,7 @@ static void build_breath_ui(lv_obj_t *parent)
 static void build_step_ui(lv_obj_t *parent, bool sensory_dim)
 {
     s_reg.root = lv_obj_create(parent);
-    lv_obj_set_size(s_reg.root, 260, 160);
+    lv_obj_set_size(s_reg.root, CIRCE_UI_REG_ROOT_W, CIRCE_UI_REG_STEP_ROOT_H);
     lv_obj_align(s_reg.root, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_set_style_border_width(s_reg.root, 0, 0);
     lv_obj_set_style_pad_all(s_reg.root, 0, 0);
@@ -576,8 +577,8 @@ static void build_step_ui(lv_obj_t *parent, bool sensory_dim)
     }
 
     s_reg.step_lbl = lv_label_create(s_reg.root);
-    lv_obj_set_width(s_reg.step_lbl, 248);
-    lv_obj_align(s_reg.step_lbl, LV_ALIGN_TOP_MID, 0, 4);
+    lv_obj_set_width(s_reg.step_lbl, CIRCE_UI_REG_STEP_LABEL_W);
+    lv_obj_align(s_reg.step_lbl, LV_ALIGN_TOP_MID, 0, CIRCE_UI_REG_STEP_TITLE_Y);
     circe_fonts_apply_label(s_reg.step_lbl, CIRCE_FONT_ROLE_CAPTION);
     const circe_theme_palette_t *p = circe_theme_get_palette();
     lv_obj_set_style_text_color(s_reg.step_lbl, circe_theme_color(p->accent_muted), 0);
@@ -585,7 +586,7 @@ static void build_step_ui(lv_obj_t *parent, bool sensory_dim)
 
     s_reg.prompt_lbl = lv_label_create(s_reg.root);
     lv_obj_set_width(s_reg.prompt_lbl, 248);
-    lv_obj_align(s_reg.prompt_lbl, LV_ALIGN_TOP_MID, 0, 36);
+    lv_obj_align(s_reg.prompt_lbl, LV_ALIGN_TOP_MID, 0, CIRCE_UI_REG_STEP_BODY_Y);
     lv_label_set_long_mode(s_reg.prompt_lbl, LV_LABEL_LONG_WRAP);
     style_prompt_label(s_reg.prompt_lbl);
     if (sensory_dim) {
@@ -605,7 +606,7 @@ static void build_bilateral_ui(lv_obj_t *parent)
     const circe_theme_palette_t *p = circe_theme_get_palette();
 
     s_reg.root = lv_obj_create(parent);
-    lv_obj_set_size(s_reg.root, 260, 180);
+    lv_obj_set_size(s_reg.root, CIRCE_UI_REG_ROOT_W, CIRCE_UI_REG_BILATERAL_ROOT_H);
     lv_obj_align(s_reg.root, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_set_style_bg_opa(s_reg.root, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(s_reg.root, 0, 0);
@@ -613,20 +614,20 @@ static void build_bilateral_ui(lv_obj_t *parent)
     lv_obj_clear_flag(s_reg.root, LV_OBJ_FLAG_SCROLLABLE);
 
     s_reg.left_dot = lv_obj_create(s_reg.root);
-    lv_obj_set_size(s_reg.left_dot, 36, 36);
-    lv_obj_align(s_reg.left_dot, LV_ALIGN_TOP_MID, -56, 24);
+    lv_obj_set_size(s_reg.left_dot, CIRCE_UI_REG_DOT_SIZE, CIRCE_UI_REG_DOT_SIZE);
+    lv_obj_align(s_reg.left_dot, LV_ALIGN_TOP_MID, -CIRCE_UI_REG_DOT_X_OFS, CIRCE_UI_REG_DOT_Y);
     lv_obj_set_style_radius(s_reg.left_dot, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_border_width(s_reg.left_dot, 0, 0);
 
     s_reg.right_dot = lv_obj_create(s_reg.root);
-    lv_obj_set_size(s_reg.right_dot, 36, 36);
-    lv_obj_align(s_reg.right_dot, LV_ALIGN_TOP_MID, 56, 24);
+    lv_obj_set_size(s_reg.right_dot, CIRCE_UI_REG_DOT_SIZE, CIRCE_UI_REG_DOT_SIZE);
+    lv_obj_align(s_reg.right_dot, LV_ALIGN_TOP_MID, CIRCE_UI_REG_DOT_X_OFS, CIRCE_UI_REG_DOT_Y);
     lv_obj_set_style_radius(s_reg.right_dot, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_border_width(s_reg.right_dot, 0, 0);
 
     s_reg.side_lbl = lv_label_create(s_reg.root);
-    lv_obj_set_width(s_reg.side_lbl, 240);
-    lv_obj_align(s_reg.side_lbl, LV_ALIGN_TOP_MID, 0, 96);
+    lv_obj_set_width(s_reg.side_lbl, CIRCE_UI_REG_LABEL_W);
+    lv_obj_align(s_reg.side_lbl, LV_ALIGN_TOP_MID, 0, CIRCE_UI_REG_SIDE_LABEL_Y);
     style_prompt_label(s_reg.side_lbl);
     lv_obj_set_style_text_color(s_reg.side_lbl, circe_theme_color(p->focus), 0);
 

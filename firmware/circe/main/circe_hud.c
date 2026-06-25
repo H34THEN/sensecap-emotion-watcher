@@ -3,10 +3,11 @@
 #include "circe_copy.h"
 #include "circe_fonts.h"
 #include "circe_theme.h"
+#include "circe_ui_tokens.h"
 #include "circe_voice_state_ui.h"
 
-#define HUD_TOP_H     72
-#define HUD_ACTIONS_H 132
+#define HUD_TOP_H     CIRCE_UI_HUD_TOP_H
+#define HUD_ACTIONS_H CIRCE_UI_HUD_ACTIONS_H
 
 static bool s_reset_mode = true;
 
@@ -95,11 +96,11 @@ void circe_hud_create(lv_obj_t *scr, circe_hud_t *hud)
 
     hud->top_line = lv_obj_create(scr);
     lv_obj_set_size(hud->top_line, CIRCE_HUD_VIEWPORT_W + 20, 1);
-    lv_obj_align(hud->top_line, LV_ALIGN_TOP_MID, 0, 88);
+    lv_obj_align(hud->top_line, LV_ALIGN_TOP_MID, 0, CIRCE_UI_HUD_TOP_LINE_Y);
     lv_obj_clear_flag(hud->top_line, LV_OBJ_FLAG_SCROLLABLE);
 
     hud->top_arc = lv_obj_create(scr);
-    lv_obj_set_size(hud->top_arc, 412, HUD_TOP_H);
+    lv_obj_set_size(hud->top_arc, CIRCE_UI_DISPLAY_W, HUD_TOP_H);
     lv_obj_align(hud->top_arc, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_set_style_bg_opa(hud->top_arc, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(hud->top_arc, 0, 0);
@@ -107,8 +108,8 @@ void circe_hud_create(lv_obj_t *scr, circe_hud_t *hud)
 
     hud->viewport = lv_obj_create(scr);
     lv_obj_set_size(hud->viewport, CIRCE_HUD_VIEWPORT_W, CIRCE_HUD_VIEWPORT_H);
-    lv_obj_align(hud->viewport, LV_ALIGN_TOP_MID, 0, 78);
-    lv_obj_set_style_pad_all(hud->viewport, 8, 0);
+    lv_obj_align(hud->viewport, LV_ALIGN_TOP_MID, 0, CIRCE_UI_HUD_VIEWPORT_Y);
+    lv_obj_set_style_pad_all(hud->viewport, CIRCE_UI_HUD_VIEWPORT_PAD, 0);
     lv_obj_clear_flag(hud->viewport, LV_OBJ_FLAG_SCROLLABLE);
 
     hud->presence = lv_obj_create(hud->viewport);
@@ -120,19 +121,19 @@ void circe_hud_create(lv_obj_t *scr, circe_hud_t *hud)
     hud->heading = lv_label_create(hud->viewport);
     lv_obj_set_width(hud->heading, CIRCE_HUD_VIEWPORT_W - 16);
     lv_label_set_long_mode(hud->heading, LV_LABEL_LONG_WRAP);
-    lv_obj_align(hud->heading, LV_ALIGN_TOP_MID, 0, 38);
+    lv_obj_align(hud->heading, LV_ALIGN_TOP_MID, 0, CIRCE_UI_HUD_HEADING_Y);
     lv_obj_add_flag(hud->heading, LV_OBJ_FLAG_HIDDEN);
 
     hud->prompt = lv_label_create(hud->viewport);
     lv_obj_set_width(hud->prompt, CIRCE_HUD_VIEWPORT_W - 16);
     lv_label_set_long_mode(hud->prompt, LV_LABEL_LONG_WRAP);
-    lv_obj_align(hud->prompt, LV_ALIGN_TOP_MID, 0, 38);
+    lv_obj_align(hud->prompt, LV_ALIGN_TOP_MID, 0, CIRCE_UI_HUD_HEADING_Y);
     lv_obj_add_flag(hud->prompt, LV_OBJ_FLAG_HIDDEN);
 
     hud->response = lv_label_create(hud->viewport);
     lv_obj_set_width(hud->response, CIRCE_HUD_VIEWPORT_W - 16);
     lv_label_set_long_mode(hud->response, LV_LABEL_LONG_WRAP);
-    lv_obj_align(hud->response, LV_ALIGN_BOTTOM_MID, 0, -2);
+    lv_obj_align(hud->response, LV_ALIGN_BOTTOM_MID, 0, CIRCE_UI_HUD_STATUS_Y_OFS);
     lv_obj_add_flag(hud->response, LV_OBJ_FLAG_HIDDEN);
 
     hud->bottom_line = lv_obj_create(scr);
@@ -141,8 +142,8 @@ void circe_hud_create(lv_obj_t *scr, circe_hud_t *hud)
     lv_obj_clear_flag(hud->bottom_line, LV_OBJ_FLAG_SCROLLABLE);
 
     hud->actions = lv_obj_create(scr);
-    lv_obj_set_size(hud->actions, 412, HUD_ACTIONS_H);
-    lv_obj_align(hud->actions, LV_ALIGN_BOTTOM_MID, 0, -10);
+    lv_obj_set_size(hud->actions, CIRCE_UI_HUD_ACTIONS_W, HUD_ACTIONS_H);
+    lv_obj_align(hud->actions, LV_ALIGN_BOTTOM_MID, 0, CIRCE_UI_HUD_ACTIONS_Y_OFS);
     lv_obj_set_style_pad_all(hud->actions, 0, 0);
     lv_obj_set_style_bg_opa(hud->actions, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(hud->actions, 0, 0);
@@ -151,7 +152,7 @@ void circe_hud_create(lv_obj_t *scr, circe_hud_t *hud)
     hud->status = lv_label_create(scr);
     lv_obj_set_width(hud->status, CIRCE_HUD_VIEWPORT_W);
     lv_label_set_long_mode(hud->status, LV_LABEL_LONG_WRAP);
-    lv_obj_align(hud->status, LV_ALIGN_BOTTOM_MID, 0, -2);
+    lv_obj_align(hud->status, LV_ALIGN_BOTTOM_MID, 0, CIRCE_UI_HUD_STATUS_Y_OFS);
 
     const uint16_t seg_starts[] = {200, 250, 290, 330};
     const uint16_t seg_ends[] = {230, 280, 320, 360};

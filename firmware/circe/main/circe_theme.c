@@ -1,6 +1,10 @@
 #include "circe_theme.h"
 
-#include <string.h>
+/*
+ * Theme palettes, button styles, and NVS persistence.
+ * Layout/spacing tokens: firmware/circe/main/circe_ui_tokens.h
+ * Banner accent hex also mirrored in CIRCE_UI_STATUS_BANNER_* tokens.
+ */
 
 #include "circe_fonts.h"
 #include "esp_log.h"

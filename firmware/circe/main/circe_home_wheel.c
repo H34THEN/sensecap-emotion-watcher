@@ -6,6 +6,7 @@
 #include "circe_encoder.h"
 #include "circe_fonts.h"
 #include "circe_theme.h"
+#include "circe_ui_tokens.h"
 #include "esp_log.h"
 
 static const char *TAG = "circe_home_wheel";
@@ -99,7 +100,7 @@ void circe_home_wheel_create(circe_home_wheel_t *wheel, lv_obj_t *parent, int in
     const circe_theme_palette_t *p = circe_theme_get_palette();
 
     wheel->root = lv_obj_create(parent);
-    lv_obj_set_size(wheel->root, 280, 148);
+    lv_obj_set_size(wheel->root, CIRCE_UI_HOME_ROOT_W, CIRCE_UI_HOME_ROOT_H);
     lv_obj_align(wheel->root, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_set_style_bg_opa(wheel->root, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(wheel->root, 0, 0);
@@ -110,19 +111,19 @@ void circe_home_wheel_create(circe_home_wheel_t *wheel, lv_obj_t *parent, int in
     wheel->next_lbl = NULL;
 
     wheel->current_lbl = lv_label_create(wheel->root);
-    lv_obj_set_width(wheel->current_lbl, 260);
-    lv_obj_align(wheel->current_lbl, LV_ALIGN_TOP_MID, 0, 24);
+    lv_obj_set_width(wheel->current_lbl, CIRCE_UI_HOME_LABEL_W);
+    lv_obj_align(wheel->current_lbl, LV_ALIGN_TOP_MID, 0, CIRCE_UI_HOME_CURRENT_Y);
     style_center_label(wheel->current_lbl, CIRCE_FONT_ROLE_HERO, LV_OPA_COVER, p->text);
 
     wheel->index_lbl = lv_label_create(wheel->root);
-    lv_obj_set_width(wheel->index_lbl, 260);
-    lv_obj_align(wheel->index_lbl, LV_ALIGN_TOP_MID, 0, 72);
-    style_center_label(wheel->index_lbl, CIRCE_FONT_ROLE_CAPTION, LV_OPA_80, p->accent_primary);
+    lv_obj_set_width(wheel->index_lbl, CIRCE_UI_HOME_LABEL_W);
+    lv_obj_align(wheel->index_lbl, LV_ALIGN_TOP_MID, 0, CIRCE_UI_HOME_INDEX_Y);
+    style_center_label(wheel->index_lbl, CIRCE_FONT_ROLE_CAPTION, CIRCE_UI_SELECTOR_INDEX_OPA, p->accent_primary);
 
     wheel->hint_lbl = lv_label_create(wheel->root);
-    lv_obj_set_width(wheel->hint_lbl, 260);
-    lv_obj_align(wheel->hint_lbl, LV_ALIGN_TOP_MID, 0, 102);
-    style_center_label(wheel->hint_lbl, CIRCE_FONT_ROLE_CAPTION, LV_OPA_60, p->muted);
+    lv_obj_set_width(wheel->hint_lbl, CIRCE_UI_HOME_LABEL_W);
+    lv_obj_align(wheel->hint_lbl, LV_ALIGN_TOP_MID, 0, CIRCE_UI_HOME_HINT_Y);
+    style_center_label(wheel->hint_lbl, CIRCE_FONT_ROLE_CAPTION, CIRCE_UI_SELECTOR_HINT_OPA, p->muted);
 
     update_labels(wheel);
     ESP_LOGI(TAG, "home wheel created: %d options, index=%d", CIRCE_HOME_WHEEL_COUNT, wheel->selected);

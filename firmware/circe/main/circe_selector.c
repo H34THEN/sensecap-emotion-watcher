@@ -5,6 +5,7 @@
 #include "circe_copy.h"
 #include "circe_fonts.h"
 #include "circe_theme.h"
+#include "circe_ui_tokens.h"
 
 static int wrap_index(int idx, int count)
 {
@@ -48,32 +49,32 @@ void circe_selector_create(circe_selector_t *sel, lv_obj_t *parent, const char *
     const circe_theme_palette_t *p = circe_theme_get_palette();
 
     sel->root = lv_obj_create(parent);
-    lv_obj_set_size(sel->root, 280, 168);
+    lv_obj_set_size(sel->root, CIRCE_UI_SELECTOR_ROOT_W, CIRCE_UI_SELECTOR_ROOT_H);
     lv_obj_align(sel->root, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_set_style_bg_opa(sel->root, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(sel->root, 0, 0);
     lv_obj_clear_flag(sel->root, LV_OBJ_FLAG_SCROLLABLE);
 
     sel->title_lbl = lv_label_create(sel->root);
-    lv_obj_set_width(sel->title_lbl, 260);
-    lv_obj_align(sel->title_lbl, LV_ALIGN_TOP_MID, 0, 0);
-    style_label(sel->title_lbl, CIRCE_FONT_ROLE_CAPTION, LV_OPA_70, p->muted);
+    lv_obj_set_width(sel->title_lbl, CIRCE_UI_SELECTOR_LABEL_W);
+    lv_obj_align(sel->title_lbl, LV_ALIGN_TOP_MID, 0, CIRCE_UI_SELECTOR_TITLE_Y);
+    style_label(sel->title_lbl, CIRCE_FONT_ROLE_CAPTION, CIRCE_UI_SELECTOR_TITLE_OPA, p->muted);
     lv_label_set_text(sel->title_lbl, title ? title : "");
 
     sel->current_lbl = lv_label_create(sel->root);
-    lv_obj_set_width(sel->current_lbl, 260);
-    lv_obj_align(sel->current_lbl, LV_ALIGN_TOP_MID, 0, 28);
+    lv_obj_set_width(sel->current_lbl, CIRCE_UI_SELECTOR_LABEL_W);
+    lv_obj_align(sel->current_lbl, LV_ALIGN_TOP_MID, 0, CIRCE_UI_SELECTOR_CURRENT_Y);
     style_label(sel->current_lbl, CIRCE_FONT_ROLE_HERO, LV_OPA_COVER, p->text);
 
     sel->index_lbl = lv_label_create(sel->root);
-    lv_obj_set_width(sel->index_lbl, 260);
-    lv_obj_align(sel->index_lbl, LV_ALIGN_TOP_MID, 0, 88);
-    style_label(sel->index_lbl, CIRCE_FONT_ROLE_CAPTION, LV_OPA_80, p->accent_primary);
+    lv_obj_set_width(sel->index_lbl, CIRCE_UI_SELECTOR_LABEL_W);
+    lv_obj_align(sel->index_lbl, LV_ALIGN_TOP_MID, 0, CIRCE_UI_SELECTOR_INDEX_Y);
+    style_label(sel->index_lbl, CIRCE_FONT_ROLE_CAPTION, CIRCE_UI_SELECTOR_INDEX_OPA, p->accent_primary);
 
     sel->hint_lbl = lv_label_create(sel->root);
-    lv_obj_set_width(sel->hint_lbl, 260);
-    lv_obj_align(sel->hint_lbl, LV_ALIGN_TOP_MID, 0, 118);
-    style_label(sel->hint_lbl, CIRCE_FONT_ROLE_CAPTION, LV_OPA_60, p->muted);
+    lv_obj_set_width(sel->hint_lbl, CIRCE_UI_SELECTOR_LABEL_W);
+    lv_obj_align(sel->hint_lbl, LV_ALIGN_TOP_MID, 0, CIRCE_UI_SELECTOR_HINT_Y);
+    style_label(sel->hint_lbl, CIRCE_FONT_ROLE_CAPTION, CIRCE_UI_SELECTOR_HINT_OPA, p->muted);
     lv_label_set_text(sel->hint_lbl, circe_copy_get(CIRCE_PATTERN_NAV_ROTATE_CHOOSE));
 
     circe_selector_refresh(sel);

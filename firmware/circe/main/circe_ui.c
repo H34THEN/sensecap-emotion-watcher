@@ -16,6 +16,7 @@
 #include "circe_save.h"
 #include "circe_selector.h"
 #include "circe_status_banner.h"
+#include "circe_ui_tokens.h"
 #include "circe_storage.h"
 #include "circe_strand_cache.h"
 #include "circe_color_picker.h"
@@ -38,10 +39,10 @@
 #include "lvgl.h"
 
 #define MAX_BTN_IDS       40
-#define CIRCE_UI_COL_W    240
-#define COL_W             CIRCE_UI_COL_W
-#define COL_PAD           8
-#define COL_H                240
+#define CIRCE_UI_COL_W    CIRCE_UI_CONTENT_COL_W
+#define COL_W             CIRCE_UI_CONTENT_COL_W
+#define COL_PAD           CIRCE_UI_CONTENT_COL_PAD
+#define COL_H             CIRCE_UI_CONTENT_COL_H
 #define CIRCE_MSG_NONE       (-1)
 
 static const char *TAG = "circe_ui";

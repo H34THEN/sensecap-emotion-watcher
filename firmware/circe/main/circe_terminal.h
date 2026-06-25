@@ -1,12 +1,13 @@
 #pragma once
 
 #include "circe_conversation_engine.h"
+#include "circe_ui_tokens.h"
 #include "lvgl.h"
 
-#define CIRCE_TERMINAL_FEED_LINES 5
-#define CIRCE_TERMINAL_ROW_H        34
-#define CIRCE_TERMINAL_FEED_Y_OFS   58
-#define CIRCE_TERMINAL_FEED_PANEL_H 62
+#define CIRCE_TERMINAL_FEED_LINES   CIRCE_UI_TERMINAL_FEED_LINES
+#define CIRCE_TERMINAL_ROW_H        CIRCE_UI_TERMINAL_ROW_H
+#define CIRCE_TERMINAL_FEED_Y_OFS   CIRCE_UI_TERMINAL_FEED_Y_OFS
+#define CIRCE_TERMINAL_FEED_PANEL_H CIRCE_UI_TERMINAL_FEED_PANEL_H
 
 typedef struct {
     lv_obj_t *panel;

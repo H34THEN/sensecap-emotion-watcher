@@ -9,6 +9,7 @@
 #include "circe_fonts.h"
 #include "circe_time.h"
 #include "circe_ui.h"
+#include "circe_ui_tokens.h"
 #include "circe_voice.h"
 
 static const char *TAG = "circe_main";
@@ -77,6 +78,7 @@ void app_main(void)
 
     if (lvgl_port_lock(-1)) {
         circe_ui_init();
+        circe_ui_tokens_log_boot();
         circe_ui_show_step(CIRCE_FLOW_HOME);
         circe_ui_apply_boot_strand();
         lvgl_port_unlock();
