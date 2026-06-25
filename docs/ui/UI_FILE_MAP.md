@@ -16,7 +16,7 @@ Reference for manual visual layout and styling edits. Paths are relative to `fir
 6. **`circe_color_picker.c/h`** — color field canvas
 7. **`circe_regulation.c/h`** — regulation visuals
 8. **`firmware/circe/main/assets/circe_homepage_bg.c/h`** — embedded Home HUD background (generated)
-9. **`docs/circe_homepage_bg.png`** — source PNG for Home background (regenerate asset after edits)
+9. **`docs/circe_bg_home.png`** — source PNG for Home background (regenerate asset after edits)
 10. **`docs/bugs/HOME_BACKGROUND_BLUE_ARTIFACTS.md`** — alpha/RGB565 artifact investigation
 11. **Avoid** worker/storage files unless debugging behavior
 
@@ -95,7 +95,7 @@ Theme persistence: NVS via `circe_theme_commit_preview()`. Do not rename NVS key
 | File | Role |
 |------|------|
 | `circe_home_bg.c/h` | Static HUD background image (Home only); show/hide on navigation |
-| `assets/circe_homepage_bg.c/h` | Embedded 412×412 RGB565 bitmap (generated from `docs/circe_homepage_bg.png`) |
+| `assets/circe_homepage_bg.c/h` | Embedded 412×412 RGB565 bitmap (generated from `docs/circe_bg_home.png`) |
 | `circe_home_wheel.c/h` | Slot-wheel UI and encoder selection |
 | `circe_daily.c/h` | Daily companion summary lines (worker-loaded) |
 | `circe_ui.c` | `CIRCE_FLOW_HOME` — feed init, wheel create, daily worker post |

@@ -37,7 +37,7 @@ Primary file:
 
 **Home background image (source PNG):**
 
-1. Replace `docs/circe_homepage_bg.png` (square recommended).
+1. Replace `docs/circe_bg_home.png` (square recommended).
 2. Regenerate embedded asset (requires Pillow):
 
 ```bash
@@ -45,7 +45,7 @@ pip install Pillow
 ```
 
 ```bash
-python3 scripts/convert_png_to_lvgl_rgb565.py docs/circe_homepage_bg.png \
+python3 scripts/convert_png_to_lvgl_rgb565.py docs/circe_bg_home.png \
   --target-size 412 \
   --out-c firmware/circe/main/assets/circe_homepage_bg.c \
   --out-h firmware/circe/main/assets/circe_homepage_bg.h \

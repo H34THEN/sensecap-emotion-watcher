@@ -12,7 +12,7 @@ Pipeline:
 
 Example:
   python3 scripts/convert_png_to_lvgl_rgb565.py \\
-    docs/circe_homepage_bg.png \\
+    docs/circe_bg_home.png \\
     --target-size 412 \\
     --out-c firmware/circe/main/assets/circe_homepage_bg.c \\
     --out-h firmware/circe/main/assets/circe_homepage_bg.h \\

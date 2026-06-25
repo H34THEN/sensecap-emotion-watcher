@@ -8,7 +8,7 @@ Embedded full-screen HUD background for the **Home** screen only.
 
 | Property | Value |
 |----------|-------|
-| Path | `docs/circe_homepage_bg.png` |
+| Path | `docs/circe_bg_home.png` (also synced to `docs/circe_homepage_bg.png`) |
 | Source dimensions | **1254 × 1254** px |
 | Color mode | RGB (IHDR color type 2 — no alpha channel in current file) |
 | Design intent | Square PNG aligned for circular Watcher display |
@@ -78,12 +78,12 @@ Rebuild and app-flash. Home reverts to the Neon Terminal shell (`CIRCE` / `onlin
 
 ## Replace or regenerate the image
 
-1. Edit or replace `docs/circe_homepage_bg.png` (square recommended).
+1. Edit or replace `docs/circe_bg_home.png` (square recommended).
 2. Install Pillow: `pip install Pillow`
 3. Regenerate (prints alpha investigation report; writes preview PNGs):
 
 ```bash
-python3 scripts/convert_png_to_lvgl_rgb565.py docs/circe_homepage_bg.png \
+python3 scripts/convert_png_to_lvgl_rgb565.py docs/circe_bg_home.png \
   --target-size 412 \
   --out-c firmware/circe/main/assets/circe_homepage_bg.c \
   --out-h firmware/circe/main/assets/circe_homepage_bg.h \
