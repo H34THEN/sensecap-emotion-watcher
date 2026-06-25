@@ -46,6 +46,7 @@ Access: `circe_copy_get(CIRCE_PATTERN_*)`
 | `storage.unavailable_*` | Storage unavailable / Check memory card |
 | `photo.*` | Photo memory / optional / saved locally / capture / skip / unavailable / entry still saved |
 | `voice.*` | Voice cues / off / soft / unavailable / enabled / disabled |
+| `daily.*` | Time-of-day / entry count / regulation / quiet allowed |
 
 Existing body prompts (`body.area_prompt`, `body.sensation_prompt`, `body.intensity_prompt`) were tightened to match the companion spec.
 
@@ -55,7 +56,7 @@ Existing body prompts (`body.area_prompt`, `body.sensation_prompt`, `body.intens
 
 | Screen | Keys used |
 |--------|-----------|
-| Home feed + subline | `HOME_FEED_READY`, `HOME_WHEEL_HINT`, `STORAGE_UNAVAILABLE_*` |
+| Home feed + subline | `HOME_FEED_READY`, `HOME_WHEEL_HINT`, `STORAGE_UNAVAILABLE_*`, `DAILY_*` |
 | Emotional tone | `TONE_PROMPT`, `TONE_ROUGH_OK` |
 | Color picker / presets | `COLOR_FIELD_HINT`, `COLOR_PRESETS_PROMPT` |
 | Memory menu / browse / error | `MEMORY_*` |

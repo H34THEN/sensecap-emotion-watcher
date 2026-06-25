@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "circe_copy.h"
+#include "circe_daily.h"
 #include "circe_entry_modes.h"
 #include "circe_fonts.h"
 #include "circe_hud.h"
@@ -341,6 +342,58 @@ static void show_save_success_notice(circe_save_result_t result)
 static void show_home(void)
 {
     circe_hud_show_terminal_shell(&s_hud, "CIRCE", "online");
+}
+
+static void apply_default_home_feed(void)
+{
+    if (!circe_storage_is_ready()) {
+        char l1[64];
+        char l2[64];
+        snprintf(l1, sizeof(l1), "> %s", circe_copy_get(CIRCE_PATTERN_STORAGE_UNAVAILABLE_1));
+        snprintf(l2, sizeof(l2), "> %s", circe_copy_get(CIRCE_PATTERN_STORAGE_UNAVAILABLE_2));
+        const char *warn[] = {l1, l2};
+        circe_terminal_feed_set(&s_feed, warn, 2);
+        circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_HOME_WHEEL_HINT));
+        return;
+    }
+    char feed_line[72];
+    snprintf(feed_line, sizeof(feed_line), "> %s", circe_copy_get(CIRCE_PATTERN_HOME_FEED_READY));
+    const char *lines[] = {feed_line};
+    circe_terminal_feed_set(&s_feed, lines, 1);
+    circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_HOME_WHEEL_HINT));
+}
+
+static void apply_daily_companion_feed(const circe_daily_summary_t *summary)
+{
+    if (!summary || !summary->valid || !s_engine || s_engine->step != CIRCE_FLOW_HOME) {
+        return;
+    }
+    if (!s_feed.panel) {
+        return;
+    }
+    char l1[72];
+    char l2[72];
+    snprintf(l1, sizeof(l1), "> %s", summary->primary_line);
+    if (summary->subline[0]) {
+        snprintf(l2, sizeof(l2), "> %s", summary->subline);
+        const char *lines[] = {l1, l2};
+        circe_terminal_feed_set(&s_feed, lines, 2);
+    } else {
+        const char *lines[] = {l1};
+        circe_terminal_feed_set(&s_feed, lines, 1);
+    }
+    circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_HOME_WHEEL_HINT));
+}
+
+static bool post_load_daily_companion(void)
+{
+    if (!circe_storage_is_ready()) {
+        return false;
+    }
+    if (circe_worker_is_busy()) {
+        return false;
+    }
+    return circe_worker_post_load_daily_companion();
 }
 
 static void clear_content(void)
@@ -755,6 +808,9 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
             pattern_browser_begin(c->patterns.count);
             go_step(CIRCE_FLOW_PATTERNS);
         }
+        break;
+    case CIRCE_WORKER_LOAD_DAILY_COMPANION:
+        apply_daily_companion_feed(&c->daily);
         break;
     default:
         break;
@@ -1270,24 +1326,12 @@ void circe_ui_show_step(circe_flow_step_t step)
             break;
         }
         circe_terminal_feed_init(&s_feed, s_hud.viewport);
-        if (!circe_storage_is_ready()) {
-            char l1[64];
-            char l2[64];
-            snprintf(l1, sizeof(l1), "> %s", circe_copy_get(CIRCE_PATTERN_STORAGE_UNAVAILABLE_1));
-            snprintf(l2, sizeof(l2), "> %s", circe_copy_get(CIRCE_PATTERN_STORAGE_UNAVAILABLE_2));
-            const char *warn[] = {l1, l2};
-            circe_terminal_feed_set(&s_feed, warn, 2);
-        } else {
-            char feed_line[64];
-            snprintf(feed_line, sizeof(feed_line), "> %s", circe_copy_get(CIRCE_PATTERN_HOME_FEED_READY));
-            const char *lines[] = {feed_line};
-            circe_terminal_feed_set(&s_feed, lines, 1);
-        }
+        apply_default_home_feed();
         circe_terminal_feed_show_cursor(&s_feed, true);
-        circe_hud_set_subline(&s_hud, circe_copy_get(CIRCE_PATTERN_HOME_WHEEL_HINT));
         s_nav_back_step = CIRCE_FLOW_HOME;
         circe_terminal_nav_enable(false);
         circe_home_wheel_create(&s_home_wheel, s_content, 0);
+        post_load_daily_companion();
         break;
     }
 

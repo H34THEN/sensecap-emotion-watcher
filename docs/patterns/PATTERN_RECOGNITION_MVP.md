@@ -99,6 +99,6 @@ Worker stack high-water logged before/after each job (`log_worker_resources`).
 ## Future links
 
 - **Body Heat Map** — spatial visualization of repeated body areas (later phase)
-- **Daily Companion** — may reuse pattern scan for daily summary (later phase)
+- **Daily Companion** — reuses TODAY timeline scan for home summary (see `docs/daily/DAILY_COMPANION_MVP.md`)
 
 See also: `docs/reflection/RECENT_PATTERN_REFLECTION_MVP.md`, `docs/memory/MEMORY_TIMELINE_MVP.md`

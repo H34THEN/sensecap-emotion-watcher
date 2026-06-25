@@ -102,6 +102,7 @@ If speaker init fails:
 - Breathing phase cues may feel subtle; user can disable
 - **REVIEW → TODAY display bug** unchanged
 - **Camera capture** still scaffolded
+- Daily Companion home feed is separate from voice cues
 
 ---
 

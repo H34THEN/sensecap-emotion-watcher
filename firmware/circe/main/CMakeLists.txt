@@ -19,6 +19,7 @@ idf_component_register(
         "circe_memory_browser.c"
         "circe_patterns.c"
         "circe_photo.c"
+        "circe_daily.c"
         "circe_voice.c"
         "circe_buf.c"
         "circe_save.c"

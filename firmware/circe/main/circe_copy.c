@@ -149,6 +149,21 @@ static const circe_copy_row_t s_copy[] = {
     {CIRCE_PATTERN_VOICE_UNAVAILABLE, "voice.unavailable", "Audio unavailable."},
     {CIRCE_PATTERN_VOICE_ENABLED, "voice.enabled", "Voice cues on."},
     {CIRCE_PATTERN_VOICE_DISABLED, "voice.disabled", "Voice cues off."},
+    {CIRCE_PATTERN_DAILY_READY, "daily.ready", "CIRCE ready."},
+    {CIRCE_PATTERN_DAILY_START_BODY, "daily.start_body", "Start with the body when ready."},
+    {CIRCE_PATTERN_DAILY_GOOD_MORNING, "daily.good_morning", "Good morning."},
+    {CIRCE_PATTERN_DAILY_GOOD_AFTERNOON, "daily.good_afternoon", "Good afternoon."},
+    {CIRCE_PATTERN_DAILY_GOOD_EVENING, "daily.good_evening", "Good evening."},
+    {CIRCE_PATTERN_DAILY_GOOD_NIGHT, "daily.good_night", "Good night."},
+    {CIRCE_PATTERN_DAILY_NO_ENTRY_TODAY, "daily.no_entry_today", "No entry yet today."},
+    {CIRCE_PATTERN_DAILY_QUIET_ALLOWED, "daily.quiet_allowed", "Quiet records are allowed."},
+    {CIRCE_PATTERN_DAILY_REGULATION_RECORDED, "daily.regulation_recorded", "Regulation recorded."},
+    {CIRCE_PATTERN_DAILY_REGULATION_SUB, "daily.regulation_sub", "You returned to support today."},
+    {CIRCE_PATTERN_DAILY_BODY_HEARD, "daily.body_heard", "Your body has been heard."},
+    {CIRCE_PATTERN_DAILY_TIME_UNSET, "daily.time_unset", "Time is unset."},
+    {CIRCE_PATTERN_DAILY_TIME_UNSET_SUB, "daily.time_unset_sub", "Memory still works locally."},
+    {CIRCE_PATTERN_DAILY_MEMORY_LOADING, "daily.memory_loading", "Memory is forming."},
+    {CIRCE_PATTERN_DAILY_MEMORY_UNAVAILABLE, "daily.memory_unavailable", "Memory unavailable."},
 };
 
 const char *circe_copy_get(circe_pattern_key_t key)

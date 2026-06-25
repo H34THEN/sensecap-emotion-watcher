@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "circe_index.h"
+#include "circe_daily.h"
 #include "circe_patterns.h"
 #include "circe_photo.h"
 #include "circe_reflection.h"
@@ -243,6 +244,13 @@ static void run_photo_capture(const circe_worker_cmd_t *cmd, circe_worker_comple
     }
 }
 
+static void run_load_daily_companion(circe_worker_completion_t *out)
+{
+    out->success = circe_daily_load(&out->daily);
+    snprintf(out->summary, sizeof(out->summary), "Daily entries=%d reg=%d", out->daily.entries_today,
+             out->daily.regulation_today);
+}
+
 static void run_health_check(circe_worker_completion_t *out)
 {
     circe_storage_health_check(&out->health);
@@ -305,6 +313,9 @@ static void worker_task(void *arg)
         case CIRCE_WORKER_STORAGE_STATUS:
         case CIRCE_WORKER_DIAGNOSTICS_REFRESH:
             run_health_check(&result);
+            break;
+        case CIRCE_WORKER_LOAD_DAILY_COMPANION:
+            run_load_daily_companion(&result);
             break;
         default:
             result.success = false;
@@ -451,4 +462,9 @@ bool circe_worker_post_storage_status(void)
 bool circe_worker_post_diagnostics_refresh(void)
 {
     return post_simple(CIRCE_WORKER_DIAGNOSTICS_REFRESH);
+}
+
+bool circe_worker_post_load_daily_companion(void)
+{
+    return post_simple(CIRCE_WORKER_LOAD_DAILY_COMPANION);
 }

@@ -187,6 +187,10 @@ Dedicated **PATTERNS** screen: up to 3 observations from last 16 entries (7-day 
 
 Settings → **VOICE CUES**: OFF (default) or SOFT. Optional local tones on save and regulation — no microphone, no speech. See `docs/voice/VOICE_PERSONALITY_MVP.md`.
 
+### Daily companion (MVP)
+
+Home feed updates with time-of-day and today’s local summary (worker-backed). Slot-wheel unchanged. See `docs/daily/DAILY_COMPANION_MVP.md`.
+
 ---
 
 ## Theme integration

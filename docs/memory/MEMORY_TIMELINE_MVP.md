@@ -140,6 +140,7 @@ Local SD only. No export, sync, or cloud.
 - 16-entry cap per category
 - Yesterday / week require sensible manual time (or system time)
 - Not a slot-wheel category menu (terminal rows only)
+- **Daily Companion** reuses TODAY timeline load on worker for home feed (see `docs/daily/DAILY_COMPANION_MVP.md`)
 
 ---
 
