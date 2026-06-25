@@ -142,6 +142,8 @@ Local SD only. No export, sync, or cloud.
 - **Body Heat Map** uses same index loader as patterns (`docs/body/BODY_HEAT_MAP_MVP.md`)
 - **Daily Companion** reuses TODAY timeline load on worker for home feed (see `docs/daily/DAILY_COMPANION_MVP.md`)
 
+**RC1 fix:** REVIEW → TODAY browse empty UI was caused by browser state cleared in `clear_content()` before refresh. Fixed by initializing memory browser in `show_step` after clear. See `docs/bugs/REVIEW_TODAY_DISPLAY_BUG.md`.
+
 ---
 
 ## Modules

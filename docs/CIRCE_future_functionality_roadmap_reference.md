@@ -1206,6 +1206,16 @@ These should remain deferred until:
 
 ---
 
+## Standalone MVP RC1 (2026-06)
+
+Current standalone feature set is documented in **`docs/releases/CIRCE_STANDALONE_MVP_RC1.md`**.
+
+RC1 stabilization fixed the REVIEW → TODAY timeline browse UI (browser init after `clear_content()`). UI editing reference: **`docs/ui/UI_FILE_MAP.md`**.
+
+Post-RC1 priorities: camera capture integration, body map silhouette (optional), conversation deepening, Magic Mirror (deferred).
+
+---
+
 ## Definition Of A Good CIRCE Phase
 
 A good future phase should:

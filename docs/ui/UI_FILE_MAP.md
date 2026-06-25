@@ -1,0 +1,194 @@
+# CIRCE UI File Map
+
+Reference for manual visual layout and styling edits. Paths are relative to `firmware/circe/main/`.
+
+**Rule of thumb:** Tune colors, spacing, and copy in theme/terminal/HUD files. Avoid SD reads, worker routing, and timer lifecycle in UI callbacks.
+
+---
+
+## Global UI / Navigation
+
+| File | Owns | Safe to tune | Do not edit casually |
+|------|------|--------------|----------------------|
+| `circe_ui.c` | All screen routing (`circe_ui_show_step`), button handlers, encoder nav timer, worker completion UI, `clear_content()` lifecycle, scroll panels, most `add_btn()` rows | Button label strings passed to `add_btn`, row spacing via `COL_W`, back-step targets | `go_step` routing, worker callbacks, save/delete paths, `clear_content()` destroy order |
+| `circe_conversation_engine.h` | `circe_flow_step_t` enum — every screen ID | Enum names only if adding flows (avoid in RC1) | Renumbering/reordering breaks nav string IDs |
+| `circe_conversation_engine.c` | Step → default prompt key mapping | Copy key routing for new steps | Flow logic |
+| `circe_terminal.c` / `circe_terminal.h` | Fixed-label terminal feed (5 lines max), row height (`CIRCE_TERMINAL_ROW_H`), feed Y offset, blinking cursor timer, encoder nav back/sysmenu | `CIRCE_TERMINAL_*` layout constants, row label styles via `circe_terminal_style_row*` | Feed destroy/create pairing; do not add scroll lists |
+| `circe_home_wheel.c` / `circe_home_wheel.h` | Home slot-wheel arc, option labels, focus ring | Label positions, arc radius, option spacing | Wheel destroy on every `clear_content()` — recreate happens in HOME step only |
+
+**Lifecycle risk:** `circe_ui_show_step()` always calls `clear_content()` first. Any browser state (memory, patterns, body map) must be initialized **after** that in the target `case`, not in the worker handler before `go_step()`.
+
+---
+
+## Themes / Colors / Fonts
+
+| File | Owns |
+|------|------|
+| `circe_theme.c` / `circe_theme.h` | All theme palettes including **Neon Terminal** (`CIRCE_THEME_NEON_TERMINAL`), NVS persistence, preview/commit, `circe_theme_style_*` helpers |
+| `circe_fonts.c` / `circe_fonts.h` | LVGL font selection for HUD and terminal |
+| `circe_hud.c` / `circe_hud.h` | Viewport chrome, status line, subline, prompt area, presence orb styling |
+
+**Neon Terminal** palette tokens (edit in `circe_theme.c` palette table):
+
+- `bg`, `surface`, `surface_alt` — background / panels
+- `text`, `muted` — primary and secondary text
+- `accent_primary`, `accent_secondary`, `accent_muted` — green / magenta accents
+- `border`, `focus` — viewport and focus ring
+- `danger` — delete/error emphasis
+
+Theme persistence: NVS via `circe_theme_commit_preview()`. Do not rename NVS keys without migration.
+
+**Safe edits:** hex colors in palette struct, `btn_min_h`, `btn_radius`, HUD line colors via theme style functions.
+
+---
+
+## Home Screen
+
+| File | Role |
+|------|------|
+| `circe_home_wheel.c/h` | Slot-wheel UI and encoder selection |
+| `circe_daily.c/h` | Daily companion summary lines (worker-loaded) |
+| `circe_ui.c` | `CIRCE_FLOW_HOME` — feed init, wheel create, daily worker post |
+| `circe_copy.c/h` | Home feed copy keys (`home.*`, `daily.*`) |
+
+Home feed uses terminal feed fixed labels, not a scroll list. Daily lines update asynchronously after worker completes.
+
+---
+
+## Body Check-In Flow
+
+| File | Role |
+|------|------|
+| `circe_ui.c` | `CIRCE_FLOW_BODY_AREA`, `BODY_SENSATION`, `INTENSITY`, `BODY_ADD_MORE`, `EMOTION_TONE` — button rows |
+| `circe_entry.c/h` | Entry struct, body area/sensation lists, load/save helpers |
+| `circe_copy.c/h` | Body prompt copy (`body.*`, `tone.*`) |
+
+Area/sensation buttons are created in `circe_ui.c` from `circe_body_areas[]` / `circe_body_sensations[]` in entry module.
+
+---
+
+## Mood Color Picker
+
+| File | Role |
+|------|------|
+| `circe_color_picker.c/h` | Canvas gradient field, touch mapping, magnifier, hex label |
+| `circe_color_intel.c/h` | Local trait derivation (temperature, brightness, saturation labels) |
+| `circe_ui.c` | `CIRCE_FLOW_COLOR_PICKER`, `COLOR_PRESETS`, save confirm |
+
+**Warning:** Do not reintroduce the old LVGL rectangle color grid — it crashed from too many objects (`docs/bugs/COLOR_PICKER_GRID_CRASH.md`).
+
+---
+
+## Save / Reflection / Photo Prompt
+
+| File | Role |
+|------|------|
+| `circe_worker.c/h` | Async save, delete, timeline, patterns, body map, photo capture |
+| `circe_save.c` | Save orchestration, index update |
+| `circe_reflection.c/h` | Post-save reflection text, recent pattern reflection rules |
+| `circe_photo.c/h` | Photo consent/capture scaffold, unavailable fallback |
+| `circe_ui.c` | Save confirm, reflection, photo flows |
+
+---
+
+## Memory Timeline / Review
+
+| File | Role |
+|------|------|
+| `circe_timeline.c/h` | Category load (TODAY/YESTERDAY/WEEK/ALL), global cache, line formatting |
+| `circe_memory_browser.c/h` | Encoder browse of cached entries, feed refresh |
+| `circe_ui.c` | Memory menu, `MEMORY_BROWSE`, review/detail, delete confirm |
+| `circe_index.c/h` | Index collect/filter |
+| `circe_worker.c/h` | `CIRCE_WORKER_LOAD_TIMELINE`, `LOAD_ENTRY`, `DELETE_ENTRY` |
+
+**TODAY display bug:** Fixed RC1 — browser init moved to `show_step` after `clear_content()`. See `docs/bugs/REVIEW_TODAY_DISPLAY_BUG.md`.
+
+---
+
+## Patterns Screen
+
+| File | Role |
+|------|------|
+| `circe_patterns.c/h` | Pattern scan rules, result struct |
+| `circe_worker.c/h` | `CIRCE_WORKER_LOAD_PATTERNS` |
+| `circe_ui.c` | `CIRCE_FLOW_PATTERNS*` cases, `pattern_browser_*` |
+| `circe_copy.c/h` | Pattern copy keys |
+
+---
+
+## Body Map Screen
+
+| File | Role |
+|------|------|
+| `circe_body_map.c/h` | Aggregation, `#` bar formatting, scan window |
+| `circe_worker.c/h` | `CIRCE_WORKER_LOAD_BODY_MAP` |
+| `circe_ui.c` | `CIRCE_FLOW_BODY_MAP*` cases, `body_map_browser_*` |
+| `circe_copy.c/h` | `body_map.*` copy keys |
+
+---
+
+## Regulation Screens
+
+| File | Role |
+|------|------|
+| `circe_regulation.c/h` | Breathing, body anchor, 5-4-3-2-1, sensory reset, bilateral tap timers and phases |
+| `circe_ui.c` | Regulation menu and step routing |
+| `circe_copy.c/h` | Regulation copy (`reg.*`) |
+| `circe_entry.c/h` | Regulation entry fields on save |
+
+**Warning:** Timers must be deleted on exit (`circe_regulation_destroy()`). Do not create LVGL objects every tick.
+
+---
+
+## Settings / Diagnostics / Time / Voice
+
+| File | Role |
+|------|------|
+| `circe_ui.c` | MORE menu, appearance, diagnostics UI |
+| `circe_time_picker.c/h` | Manual date/time UI |
+| `circe_time.c/h` | RTC/time helpers, date folders |
+| `circe_theme.c/h` | Theme picker and persistence |
+| `circe_voice.c/h` | Soft tone cues, NVS mode |
+| `circe_worker.c/h` | TEST SAVE, probe, rebuild, health check |
+
+---
+
+## Safe Manual UI Editing Guidelines
+
+### Safe to edit
+
+- Text size (font helpers, label styles)
+- Label positions and row Y offsets (`CIRCE_TERMINAL_FEED_Y_OFS`, HUD layout)
+- Theme palette colors and button radius/height
+- Spacing, border width, focus ring colors
+- Copy strings in `circe_copy.c`
+- Selected/dim row styles in `circe_terminal_style_row_label`
+
+### Be careful editing
+
+- Flow transitions and `go_step()` targets
+- Worker completion handlers
+- Timer create/delete in regulation and terminal cursor
+- `circe_terminal_feed_destroy` / `init` pairing
+- SD/index reads (must stay on worker)
+- Save/delete/index code paths
+- CMake source registration
+- NVS key names
+- Camera/voice hardware init
+
+### Avoid
+
+- Hundreds of LVGL objects (grids, scroll lists)
+- Large canvas buffers on stack
+- SD reads inside UI callbacks or encoder poll
+- Recreating entire screens on every knob tick
+- Scrollbars on circular UI
+- Full flash / partition table changes
+
+---
+
+## Related docs
+
+- `docs/ui/COMPANION_INTERFACE_SPEC.md` — screen behavior spec
+- `docs/memory/MEMORY_TIMELINE_MVP.md` — timeline caps and browse
+- `docs/releases/CIRCE_STANDALONE_MVP_RC1.md` — RC1 feature list and validation

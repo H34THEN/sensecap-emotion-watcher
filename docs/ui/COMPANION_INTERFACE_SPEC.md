@@ -179,6 +179,8 @@ No cards, no scroll — same companion shell typography.
 
 REVIEW → category menu (TODAY / YESTERDAY / THIS WEEK / ALL ENTRIES / **PATTERNS** / **BODY MAP**) → worker load → encoder browse, pattern rotate, or body map bars. See `docs/memory/MEMORY_TIMELINE_MVP.md`, `docs/patterns/PATTERN_RECOGNITION_MVP.md`, and `docs/body/BODY_HEAT_MAP_MVP.md`.
 
+**RC1:** TODAY browse UI fix — browser initialized after screen clear (`docs/bugs/REVIEW_TODAY_DISPLAY_BUG.md`). Manual visual editing: `docs/ui/UI_FILE_MAP.md`.
+
 ### Body heat map (MVP)
 
 **BODY MAP** screen: up to 5 body areas ranked from last 16 entries (7-day window). Text `#` bars; encoder rotates detail subline. See `docs/body/BODY_HEAT_MAP_MVP.md`.
