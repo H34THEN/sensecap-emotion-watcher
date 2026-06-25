@@ -27,6 +27,10 @@ Touch-drag field on `CIRCE_FLOW_COLOR_PICKER` with preset fallback on `CIRCE_FLO
 
 See [COLOR_PICKER_V2_IMPLEMENTATION.md](../color/COLOR_PICKER_V2_IMPLEMENTATION.md).
 
+### Derived color intelligence (MVP)
+
+At save time, valid `color_hex` values produce optional HSV-derived fields (`color_family`, `color_temperature`, `color_brightness_label`, `color_saturation_label`, etc.). See [EMOTIONAL_COLOR_INTELLIGENCE_MVP.md](../color/EMOTIONAL_COLOR_INTELLIGENCE_MVP.md). CIRCE uses these for review, reflection, and patterns — never universal emotion→color mapping.
+
 ### Legacy notes
 
 - **Wheel or palette grid** sized for 412×412 display.

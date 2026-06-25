@@ -27,6 +27,14 @@ typedef struct {
     char color_hex[CIRCE_MAX_COLOR];
     char color_label[CIRCE_MAX_COLOR_LABEL];
     bool color_skipped;
+    bool has_color_intel;
+    float color_hue;
+    float color_saturation;
+    float color_value;
+    char color_family[16];
+    char color_temperature[12];
+    char color_brightness_label[12];
+    char color_saturation_label[12];
     bool emotion_skipped;
     char regulation_type[CIRCE_MAX_REGULATION_TYPE];
     int regulation_duration_seconds;

@@ -1,11 +1,11 @@
 #include "circe_patterns.h"
 
-#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
 
 #include "circe_buf.h"
+#include "circe_color_intel.h"
 #include "circe_copy.h"
 #include "circe_storage.h"
 #include "circe_timeline.h"
@@ -14,15 +14,6 @@
 static const char *TAG = "circe_patterns";
 
 static circe_patterns_result_t s_cache;
-
-typedef enum {
-    COLOR_FAM_UNKNOWN = 0,
-    COLOR_FAM_COOL,
-    COLOR_FAM_WARM,
-    COLOR_FAM_DARK,
-    COLOR_FAM_BRIGHT,
-    COLOR_FAM_MUTED,
-} color_family_t;
 
 static bool tone_is_unknown(const char *tone)
 {
@@ -34,72 +25,32 @@ static bool item_is_regulation(const circe_timeline_item_t *item)
     return item && (item->entry_mode == CIRCE_ENTRY_MODE_REGULATION || item->has_regulation);
 }
 
-static bool hex_to_rgb(const char *hex, float *r, float *g, float *b)
+static int count_color_trait(const circe_timeline_item_t *items, int n, const char *trait, const char *value)
 {
-    if (!hex || hex[0] != '#') {
-        return false;
-    }
-    unsigned ir = 0;
-    unsigned ig = 0;
-    unsigned ib = 0;
-    if (sscanf(hex + 1, "%2x%2x%2x", &ir, &ig, &ib) != 3) {
-        return false;
-    }
-    *r = (float)ir / 255.0f;
-    *g = (float)ig / 255.0f;
-    *b = (float)ib / 255.0f;
-    return true;
-}
-
-static color_family_t color_family_of(const char *hex)
-{
-    float r, g, b;
-    if (!hex_to_rgb(hex, &r, &g, &b)) {
-        return COLOR_FAM_UNKNOWN;
-    }
-    float maxc = r;
-    if (g > maxc) {
-        maxc = g;
-    }
-    if (b > maxc) {
-        maxc = b;
-    }
-    float minc = r;
-    if (g < minc) {
-        minc = g;
-    }
-    if (b < minc) {
-        minc = b;
-    }
-    float v = maxc;
-    float d = maxc - minc;
-    float s = maxc > 0.0f ? d / maxc : 0.0f;
-    if (v < 0.35f) {
-        return COLOR_FAM_DARK;
-    }
-    if (v > 0.72f && s < 0.35f) {
-        return COLOR_FAM_BRIGHT;
-    }
-    if (s < 0.22f) {
-        return COLOR_FAM_MUTED;
-    }
-    float h = 0.0f;
-    if (d > 0.0f) {
-        if (maxc == r) {
-            h = 60.0f * fmodf(((g - b) / d), 6.0f);
-        } else if (maxc == g) {
-            h = 60.0f * (((b - r) / d) + 2.0f);
-        } else {
-            h = 60.0f * (((r - g) / d) + 4.0f);
+    int c = 0;
+    circe_color_intel_t intel;
+    for (int i = 0; i < n; i++) {
+        if (items[i].color_skipped || items[i].color_hex[0] != '#') {
+            continue;
         }
-        if (h < 0.0f) {
-            h += 360.0f;
+        if (!circe_color_intel_from_timeline_item(&items[i], &intel)) {
+            continue;
+        }
+        const char *candidate = NULL;
+        if (strcmp(trait, "temperature") == 0) {
+            candidate = intel.temperature;
+        } else if (strcmp(trait, "saturation_label") == 0) {
+            candidate = intel.saturation_label;
+        } else if (strcmp(trait, "brightness_label") == 0) {
+            candidate = intel.brightness_label;
+        } else if (strcmp(trait, "family") == 0) {
+            candidate = intel.family;
+        }
+        if (candidate && value && strcasecmp(candidate, value) == 0) {
+            c++;
         }
     }
-    if (h >= 120.0f && h <= 270.0f) {
-        return COLOR_FAM_COOL;
-    }
-    return COLOR_FAM_WARM;
+    return c;
 }
 
 static int count_area(const circe_timeline_item_t *items, int n, const char *area)
@@ -155,20 +106,6 @@ static int count_regulation(const circe_timeline_item_t *items, int n)
     int c = 0;
     for (int i = 0; i < n; i++) {
         if (item_is_regulation(&items[i])) {
-            c++;
-        }
-    }
-    return c;
-}
-
-static int count_color_family(const circe_timeline_item_t *items, int n, color_family_t fam)
-{
-    int c = 0;
-    for (int i = 0; i < n; i++) {
-        if (items[i].color_skipped || items[i].color_hex[0] != '#') {
-            continue;
-        }
-        if (color_family_of(items[i].color_hex) == fam) {
             c++;
         }
     }
@@ -240,6 +177,22 @@ static void push_pattern(circe_pattern_summary_t *detected, int *detected_count,
     }
     detected[*detected_count] = *src;
     (*detected_count)++;
+}
+
+static void maybe_add_color_pattern(circe_pattern_summary_t *detected, int *detected_count, const circe_timeline_item_t *items,
+                                    int count, const char *trait, const char *value, const char *primary)
+{
+    int n = count_color_trait(items, count, trait, value);
+    if (n < 3) {
+        return;
+    }
+    circe_pattern_summary_t p = {0};
+    p.kind = CIRCE_PATTERN_KIND_COLOR_FAMILY;
+    p.count = n;
+    p.total_entries = count;
+    snprintf(p.primary, sizeof(p.primary), "%s", primary);
+    set_observation_subline(&p);
+    push_pattern(detected, detected_count, &p);
 }
 
 static void trim_to_display(const circe_pattern_summary_t *detected, int detected_count, circe_patterns_result_t *out)
@@ -383,44 +336,16 @@ bool circe_patterns_scan(circe_patterns_result_t *out)
         push_pattern(detected, &detected_count, &p);
     }
 
-    color_family_t fams[] = {COLOR_FAM_COOL, COLOR_FAM_WARM, COLOR_FAM_DARK, COLOR_FAM_BRIGHT, COLOR_FAM_MUTED};
-    int best_fam_count = 0;
-    color_family_t best_fam = COLOR_FAM_UNKNOWN;
-    for (size_t fi = 0; fi < sizeof(fams) / sizeof(fams[0]); fi++) {
-        int c = count_color_family(items, count, fams[fi]);
-        if (c > best_fam_count) {
-            best_fam_count = c;
-            best_fam = fams[fi];
-        }
-    }
-    if (best_fam_count >= 3 && best_fam != COLOR_FAM_UNKNOWN) {
-        circe_pattern_summary_t p = {0};
-        p.kind = CIRCE_PATTERN_KIND_COLOR_FAMILY;
-        p.count = best_fam_count;
-        p.total_entries = count;
-        switch (best_fam) {
-        case COLOR_FAM_COOL:
-            snprintf(p.primary, sizeof(p.primary), "Your recent colors have stayed mostly cool.");
-            break;
-        case COLOR_FAM_WARM:
-            snprintf(p.primary, sizeof(p.primary), "Your recent colors have stayed mostly warm.");
-            break;
-        case COLOR_FAM_DARK:
-            snprintf(p.primary, sizeof(p.primary), "Dark colors have appeared often recently.");
-            break;
-        case COLOR_FAM_BRIGHT:
-            snprintf(p.primary, sizeof(p.primary), "Bright colors have appeared often recently.");
-            break;
-        case COLOR_FAM_MUTED:
-            snprintf(p.primary, sizeof(p.primary), "Muted colors have appeared often recently.");
-            break;
-        default:
-            snprintf(p.primary, sizeof(p.primary), "Your colors are forming a thread.");
-            break;
-        }
-        set_observation_subline(&p);
-        push_pattern(detected, &detected_count, &p);
-    }
+    maybe_add_color_pattern(detected, &detected_count, items, count, "temperature", "cool",
+                            "Your recent colors have stayed mostly cool.");
+    maybe_add_color_pattern(detected, &detected_count, items, count, "temperature", "warm",
+                            "Your recent colors have stayed mostly warm.");
+    maybe_add_color_pattern(detected, &detected_count, items, count, "saturation_label", "muted",
+                            "Your recent colors have stayed mostly muted.");
+    maybe_add_color_pattern(detected, &detected_count, items, count, "brightness_label", "dark",
+                            "Dark colors have appeared often recently.");
+    maybe_add_color_pattern(detected, &detected_count, items, count, "brightness_label", "bright",
+                            "Bright colors have appeared often recently.");
 
     circe_buf_free(items);
 

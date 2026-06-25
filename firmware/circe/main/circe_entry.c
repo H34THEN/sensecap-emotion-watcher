@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "cJSON.h"
+#include "circe_color_intel.h"
 #include "circe_time.h"
 #include "esp_log.h"
 #include "esp_random.h"
@@ -115,6 +116,15 @@ bool circe_entry_to_json(const circe_entry_t *entry, char *out, size_t out_len)
     cJSON_AddStringToObject(root, "color_label", entry->color_label[0] ? entry->color_label : "");
     cJSON_AddStringToObject(root, "color_source", entry->color_source[0] ? entry->color_source : "unknown");
     cJSON_AddBoolToObject(root, "color_skipped", entry->color_skipped);
+    if (entry->has_color_intel) {
+        cJSON_AddNumberToObject(root, "color_hue", entry->color_hue);
+        cJSON_AddNumberToObject(root, "color_saturation", (double)entry->color_saturation);
+        cJSON_AddNumberToObject(root, "color_value", (double)entry->color_value);
+        cJSON_AddStringToObject(root, "color_family", entry->color_family);
+        cJSON_AddStringToObject(root, "color_temperature", entry->color_temperature);
+        cJSON_AddStringToObject(root, "color_brightness_label", entry->color_brightness_label);
+        cJSON_AddStringToObject(root, "color_saturation_label", entry->color_saturation_label);
+    }
     cJSON_AddNumberToObject(root, "intensity", entry->intensity);
     cJSON_AddItemToObject(root, "body_areas", string_array_from_list((const char (*)[32])entry->body_areas, entry->body_area_count, 24));
     cJSON_AddItemToObject(root, "body_sensations",
@@ -236,6 +246,24 @@ bool circe_entry_from_json(const char *json, circe_entry_t *entry)
     if (cJSON_IsNull(color_hex)) {
         entry->color_hex[0] = '\0';
         entry->color_skipped = true;
+    }
+
+    cJSON *hue = cJSON_GetObjectItem(root, "color_hue");
+    cJSON *sat = cJSON_GetObjectItem(root, "color_saturation");
+    cJSON *val = cJSON_GetObjectItem(root, "color_value");
+    if (cJSON_IsNumber(hue) && cJSON_IsNumber(sat) && cJSON_IsNumber(val)) {
+        entry->has_color_intel = true;
+        entry->color_hue = (float)hue->valuedouble;
+        entry->color_saturation = (float)sat->valuedouble;
+        entry->color_value = (float)val->valuedouble;
+        copy_str_field(root, "color_family", entry->color_family, sizeof(entry->color_family));
+        copy_str_field(root, "color_temperature", entry->color_temperature, sizeof(entry->color_temperature));
+        copy_str_field(root, "color_brightness_label", entry->color_brightness_label,
+                        sizeof(entry->color_brightness_label));
+        copy_str_field(root, "color_saturation_label", entry->color_saturation_label,
+                        sizeof(entry->color_saturation_label));
+    } else if (!entry->color_skipped && entry->color_hex[0] == '#') {
+        circe_color_intel_apply_to_entry(entry);
     }
 
     cJSON *mode = cJSON_GetObjectItem(root, "entry_mode");

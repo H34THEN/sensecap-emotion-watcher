@@ -14,6 +14,7 @@
 #include "circe_storage.h"
 #include "circe_strand_cache.h"
 #include "circe_color_picker.h"
+#include "circe_color_intel.h"
 #include "circe_home_wheel.h"
 #include "circe_memory_browser.h"
 #include "circe_patterns.h"
@@ -136,7 +137,21 @@ static void format_entry_color_line(char *buf, size_t len, const circe_entry_t *
     }
     if (e->color_skipped || e->color_hex[0] == '\0') {
         snprintf(buf, len, "color SKIPPED");
-    } else if (strcmp(e->color_label, "CUSTOM") == 0) {
+        return;
+    }
+    char traits[48];
+    circe_color_intel_format_review_traits(e, traits, sizeof(traits));
+    if (traits[0]) {
+        if (strcmp(e->color_label, "CUSTOM") == 0) {
+            snprintf(buf, len, "color CUSTOM %s / %s", e->color_hex, traits);
+        } else if (e->color_label[0]) {
+            snprintf(buf, len, "color %s %s / %s", e->color_label, e->color_hex, traits);
+        } else {
+            snprintf(buf, len, "color %s / %s", e->color_hex, traits);
+        }
+        return;
+    }
+    if (strcmp(e->color_label, "CUSTOM") == 0) {
         snprintf(buf, len, "color CUSTOM %s", e->color_hex);
     } else if (e->color_label[0]) {
         snprintf(buf, len, "color %s %s", e->color_label, e->color_hex);

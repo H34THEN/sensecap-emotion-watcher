@@ -6,6 +6,7 @@
 
 #include "circe_index.h"
 #include "circe_buf.h"
+#include "circe_color_intel.h"
 #include "circe_storage.h"
 #include "circe_terminal.h"
 #include "circe_time.h"
@@ -269,6 +270,44 @@ static bool item_from_json_path(const circe_index_row_t *row, circe_timeline_ite
         upper_field(item->color_label, sizeof(item->color_label), cl->valuestring);
     }
 
+    cJSON *hue = cJSON_GetObjectItem(root, "color_hue");
+    cJSON *sat = cJSON_GetObjectItem(root, "color_saturation");
+    cJSON *val = cJSON_GetObjectItem(root, "color_value");
+    if (cJSON_IsNumber(hue) && cJSON_IsNumber(sat) && cJSON_IsNumber(val)) {
+        item->has_color_intel = true;
+        item->color_hue = (float)hue->valuedouble;
+        item->color_saturation = (float)sat->valuedouble;
+        item->color_value = (float)val->valuedouble;
+        cJSON *fam = cJSON_GetObjectItem(root, "color_family");
+        if (cJSON_IsString(fam) && fam->valuestring) {
+            strncpy(item->color_family, fam->valuestring, sizeof(item->color_family) - 1);
+        }
+        cJSON *temp = cJSON_GetObjectItem(root, "color_temperature");
+        if (cJSON_IsString(temp) && temp->valuestring) {
+            strncpy(item->color_temperature, temp->valuestring, sizeof(item->color_temperature) - 1);
+        }
+        cJSON *bright = cJSON_GetObjectItem(root, "color_brightness_label");
+        if (cJSON_IsString(bright) && bright->valuestring) {
+            strncpy(item->color_brightness_label, bright->valuestring, sizeof(item->color_brightness_label) - 1);
+        }
+        cJSON *sat_l = cJSON_GetObjectItem(root, "color_saturation_label");
+        if (cJSON_IsString(sat_l) && sat_l->valuestring) {
+            strncpy(item->color_saturation_label, sat_l->valuestring, sizeof(item->color_saturation_label) - 1);
+        }
+    } else if (!item->color_skipped && item->color_hex[0] == '#') {
+        circe_color_intel_t intel = {0};
+        if (circe_color_intel_from_hex(item->color_hex, &intel)) {
+            item->has_color_intel = true;
+            item->color_hue = intel.hue;
+            item->color_saturation = intel.saturation;
+            item->color_value = intel.value;
+            strncpy(item->color_family, intel.family, sizeof(item->color_family) - 1);
+            strncpy(item->color_temperature, intel.temperature, sizeof(item->color_temperature) - 1);
+            strncpy(item->color_brightness_label, intel.brightness_label, sizeof(item->color_brightness_label) - 1);
+            strncpy(item->color_saturation_label, intel.saturation_label, sizeof(item->color_saturation_label) - 1);
+        }
+    }
+
     cJSON_Delete(root);
     return true;
 }
@@ -469,6 +508,9 @@ void circe_timeline_item_format_lines(const circe_timeline_item_t *item, char *l
     if (line4 && l4) {
         if (item->color_skipped || item->color_hex[0] != '#') {
             snprintf(line4, l4, "COLOR SKIPPED");
+        } else if (item->has_color_intel && item->color_family[0]) {
+            snprintf(line4, l4, "COLOR %s %s %s", item->color_family, item->color_temperature,
+                     item->color_brightness_label);
         } else if (strcasecmp(item->color_label, "CUSTOM") == 0 || item->color_label[0] == '\0') {
             snprintf(line4, l4, "COLOR %s", item->color_hex);
         } else {

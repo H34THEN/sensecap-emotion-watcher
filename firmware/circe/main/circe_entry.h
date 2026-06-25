@@ -56,6 +56,14 @@ typedef struct {
     char color_label[CIRCE_MAX_COLOR_LABEL];
     char color_source[CIRCE_MAX_COLOR_SOURCE];
     bool color_skipped;
+    bool has_color_intel;
+    float color_hue;
+    float color_saturation;
+    float color_value;
+    char color_family[16];
+    char color_temperature[12];
+    char color_brightness_label[12];
+    char color_saturation_label[12];
     int intensity;
     char body_areas[CIRCE_MAX_BODY_AREAS][24];
     int body_area_count;

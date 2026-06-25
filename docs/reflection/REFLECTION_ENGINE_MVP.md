@@ -47,15 +47,17 @@ Fallback if generation fails or entry is null:
 
 1. **Body area present** — `I noticed your [area] carried this entry.`
 2. **Emotional tone** (not UNKNOWN / not skipped) — `I saved this as [label].`
-3. **Custom color** (`color_source` = `touch_picker`) — `I saved the color you chose: [hex].`
-4. **Preset color** (`color_source` = `preset`) — `I saved this color as [label] [hex].`
-5. **High intensity** (`intensity >= 8`) — `That signal was strong. I saved it.`
-6. **Tone unknown / skipped** — `Not knowing is allowed. I saved what you noticed.`
-7. **Fallback** — `Saved. I can remember this with you.`
+3. **Color traits** (derived metadata) — `This color is cool and bright.` / `I saved this as a vivid purple.`
+4. **Custom color** (`color_source` = `touch_picker`) — `I saved the color you chose: [hex].` (fallback)
+5. **Preset color** (`color_source` = `preset`) — `I saved this color as [label] [hex].`
+6. **High intensity** (`intensity >= 8`) — `That signal was strong. I saved it.`
+7. **Tone unknown / skipped** — `Not knowing is allowed. I saved what you noticed.`
+8. **Fallback** — `Saved. I can remember this with you.`
 
 **Subline**
 
 - Intensity ≥ 8: `Would a grounding sequence help?` (shows REGULATE button)
+- Color present: `Only you decide what it means.`
 - Otherwise optional: `We can return to this later.` or empty
 
 ### Regulation (`entry_mode` = regulation)

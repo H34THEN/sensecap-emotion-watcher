@@ -25,14 +25,15 @@ User completes save flow (any `entry_mode`).
 1. Validate against `emotion-entry.schema.json` (+ extensions)
 2. Assign `id`, `created_at` (UTC), `device_id`
 3. Apply defaults: `training_ok=false`, `private_locked=true`
-4. Write canonical JSON on SD card (atomic `.TMP` → `.JSN` rename):
+4. If valid `color_hex`: derive optional color intelligence fields (HSV, family, temperature, brightness/saturation labels) — see `docs/color/EMOTIONAL_COLOR_INTELLIGENCE_MVP.md`
+5. Write canonical JSON on SD card (atomic `.TMP` → `.JSN` rename):
    - **Time set:** `/sdcard/CIRCE/ENTRIES/YYYYMMDD/<id>.JSN`
    - **Time unset:** `/sdcard/CIRCE/ENTRIES/UNSET/<id>.JSN`
    - **Legacy:** `/sdcard/CIRCE/ENTRIES/19700101/` still supported for load/review
-5. Append index line (best-effort) to `INDEX/entry_index.jsonl`
-6. **Reflection (MVP):** UI shows `CIRCE_FLOW_REFLECTION` with rule-based text. Worker may load recent timeline entries for one gentle pattern observation before falling back to immediate entry text.
+6. Append index line (best-effort) to `INDEX/entry_index.jsonl`
+7. **Reflection (MVP):** UI shows `CIRCE_FLOW_REFLECTION` with rule-based text. Worker may load recent timeline entries for one gentle pattern observation before falling back to immediate entry text.
 
-7. **Memory timeline (MVP):** REVIEW opens category menu; worker loads index rows; user browses summaries and opens detail. See `docs/memory/MEMORY_TIMELINE_MVP.md`.
+8. **Memory timeline (MVP):** REVIEW opens category menu; worker loads index rows; user browses summaries and opens detail. See `docs/memory/MEMORY_TIMELINE_MVP.md`.
 
 ### Initial state flags
 

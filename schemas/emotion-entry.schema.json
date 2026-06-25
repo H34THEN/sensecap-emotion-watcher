@@ -54,6 +54,25 @@
       "enum": ["picker", "hex", "favorite", "default", "touch_picker", "preset", "skipped", "unknown"]
     },
     "color_skipped": { "type": "boolean" },
+    "color_hue": { "type": "number", "minimum": 0, "maximum": 360 },
+    "color_saturation": { "type": "number", "minimum": 0, "maximum": 1 },
+    "color_value": { "type": "number", "minimum": 0, "maximum": 1 },
+    "color_family": {
+      "type": "string",
+      "enum": ["red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink", "gray", "unknown"]
+    },
+    "color_temperature": {
+      "type": "string",
+      "enum": ["warm", "cool", "neutral", "unknown"]
+    },
+    "color_brightness_label": {
+      "type": "string",
+      "enum": ["dark", "dim", "balanced", "bright"]
+    },
+    "color_saturation_label": {
+      "type": "string",
+      "enum": ["muted", "soft", "vivid"]
+    },
     "intensity": { "type": "integer", "minimum": 1, "maximum": 10 },
     "body_areas": {
       "type": "array",

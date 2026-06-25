@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "circe_color_intel.h"
 #include "circe_storage.h"
 #include "circe_time.h"
 #include "esp_log.h"
@@ -99,8 +100,10 @@ bool circe_entry_prepare_for_save(circe_entry_t *entry)
 
     if (entry->color_skipped || entry->color_hex[0] == '\0') {
         entry->color_hex[0] = '\0';
+        circe_color_intel_clear_entry(entry);
     } else {
         circe_entry_normalize_color_hex(entry->color_hex, sizeof(entry->color_hex));
+        circe_color_intel_apply_to_entry(entry);
     }
 
     if (entry->entry_mode == CIRCE_ENTRY_MODE_BODY_ONLY) {

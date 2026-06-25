@@ -40,9 +40,9 @@ Data loader: `circe_timeline_load_pattern_context()` — lightweight JSON fields
 | Repeated tone | Same non-UNKNOWN tone ≥ 3 | `OVERWHELMED has shown up recently.` |
 | Strong signal | Intensity ≥ 8 in ≥ 2 entries | `Strong body signals appeared more than once.` + grounding subline |
 | Regulation thread | ≥ 2 regulation entries | `You have returned to regulation recently.` |
-| Color family | ≥ 3 colored entries, same bucket ≥ 3 | `Your recent colors have stayed mostly cool.` |
+| Color traits | ≥ 3 colored entries, same trait ≥ 3 | `Your recent colors have stayed mostly cool.` / muted / warm / dark / bright |
 
-Color buckets: cool, warm, dark, bright, muted.
+Color traits use derived fields when present (`color_temperature`, `color_saturation_label`, `color_brightness_label`) via `circe_color_intel`; old entries compute from `color_hex` in the lightweight loader.
 
 Subline default: `This is only an observation.` (copy key `patterns.observation`)
 

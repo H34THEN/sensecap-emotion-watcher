@@ -1082,7 +1082,7 @@ Recommended order from current firmware state:
 3. Conversation Engine cleanup — **done** (see `docs/conversation/CONVERSATION_ENGINE_COPY_POLISH.md`)
 4. Pattern Recognition — **done** (see `docs/patterns/PATTERN_RECOGNITION_MVP.md`)
 5. Regulation Library expansion — **done** (see `docs/regulation/REGULATION_LIBRARY_EXPANSION_MVP.md`)
-6. Emotional Color Intelligence
+6. Emotional Color Intelligence — **done** (see `docs/color/EMOTIONAL_COLOR_INTELLIGENCE_MVP.md`)
 7. Improved Color Picker gradient / field polish
 8. Camera Memories
 9. Voice Personality

@@ -11,6 +11,7 @@ idf_component_register(
         "circe_time.c"
         "circe_time_picker.c"
         "circe_color_picker.c"
+        "circe_color_intel.c"
         "circe_regulation.c"
         "circe_home_wheel.c"
         "circe_reflection.c"

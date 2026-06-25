@@ -136,6 +136,8 @@ Vertical stack in bottom band (240 px column centered) — unchanged for body/qu
 
 All user-facing strings originate from `circe_copy.c` pattern keys. Major flows (home, body, tone, color, memory, regulation, status) were wired in the Conversation Engine Copy Polish phase — see `docs/conversation/CONVERSATION_ENGINE_COPY_POLISH.md`.
 
+Review/detail may show compact color traits (`purple / cool / bright`) when derived metadata is present — see `docs/color/EMOTIONAL_COLOR_INTELLIGENCE_MVP.md`.
+
 Future TTS **must** use the same keys as on-screen text (see [VOICE_STATE_UI.md](VOICE_STATE_UI.md)).
 
 ### Companion language principles

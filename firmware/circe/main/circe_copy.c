@@ -130,6 +130,8 @@ static const circe_copy_row_t s_copy[] = {
     {CIRCE_PATTERN_REG_MENU_54321, "reg.menu_54321", "5-4-3-2-1"},
     {CIRCE_PATTERN_REG_MENU_SENSORY, "reg.menu_sensory", "Sensory reset"},
     {CIRCE_PATTERN_REG_MENU_BILATERAL, "reg.menu_bilateral", "Bilateral tap"},
+    {CIRCE_PATTERN_COLOR_INTEL_ONLY_YOU, "color.intel_only_you", "Only you decide what it means."},
+    {CIRCE_PATTERN_COLOR_REVIEW_TRAITS, "color.review_traits", "traits"},
 };
 
 const char *circe_copy_get(circe_pattern_key_t key)

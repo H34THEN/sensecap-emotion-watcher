@@ -1,10 +1,11 @@
 #include "circe_reflection.h"
 
-#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
 
+#include "circe_color_intel.h"
+#include "circe_copy.h"
 #include "circe_time.h"
 #include "esp_log.h"
 
@@ -142,90 +143,28 @@ static int count_regulation_recent(void)
     return n;
 }
 
-typedef enum {
-    COLOR_FAM_UNKNOWN = 0,
-    COLOR_FAM_COOL,
-    COLOR_FAM_WARM,
-    COLOR_FAM_DARK,
-    COLOR_FAM_BRIGHT,
-} color_family_t;
-
-static bool hex_to_rgb(const char *hex, float *r, float *g, float *b)
-{
-    if (!hex || hex[0] != '#') {
-        return false;
-    }
-    unsigned ir = 0;
-    unsigned ig = 0;
-    unsigned ib = 0;
-    if (sscanf(hex + 1, "%2x%2x%2x", &ir, &ig, &ib) != 3) {
-        return false;
-    }
-    *r = (float)ir / 255.0f;
-    *g = (float)ig / 255.0f;
-    *b = (float)ib / 255.0f;
-    return true;
-}
-
-static color_family_t color_family_of(const char *hex)
-{
-    float r, g, b;
-    if (!hex_to_rgb(hex, &r, &g, &b)) {
-        return COLOR_FAM_UNKNOWN;
-    }
-    float maxc = r;
-    if (g > maxc) {
-        maxc = g;
-    }
-    if (b > maxc) {
-        maxc = b;
-    }
-    float minc = r;
-    if (g < minc) {
-        minc = g;
-    }
-    if (b < minc) {
-        minc = b;
-    }
-    float v = maxc;
-    float d = maxc - minc;
-    float s = maxc > 0.0f ? d / maxc : 0.0f;
-    if (v < 0.35f) {
-        return COLOR_FAM_DARK;
-    }
-    if (v > 0.72f && s < 0.35f) {
-        return COLOR_FAM_BRIGHT;
-    }
-    if (s < 0.12f) {
-        return COLOR_FAM_UNKNOWN;
-    }
-    float h = 0.0f;
-    if (d > 0.0f) {
-        if (maxc == r) {
-            h = 60.0f * fmodf(((g - b) / d), 6.0f);
-        } else if (maxc == g) {
-            h = 60.0f * (((b - r) / d) + 2.0f);
-        } else {
-            h = 60.0f * (((r - g) / d) + 4.0f);
-        }
-        if (h < 0.0f) {
-            h += 360.0f;
-        }
-    }
-    if (h >= 120.0f && h <= 270.0f) {
-        return COLOR_FAM_COOL;
-    }
-    return COLOR_FAM_WARM;
-}
-
-static int count_color_family(color_family_t fam)
+static int count_color_trait(const char *trait, const char *value)
 {
     int n = 0;
+    circe_color_intel_t intel;
     for (int i = 0; i < s_recent_count; i++) {
         if (s_recent[i].color_skipped || s_recent[i].color_hex[0] != '#') {
             continue;
         }
-        if (color_family_of(s_recent[i].color_hex) == fam) {
+        if (!circe_color_intel_from_timeline_item(&s_recent[i], &intel)) {
+            continue;
+        }
+        const char *candidate = NULL;
+        if (strcmp(trait, "temperature") == 0) {
+            candidate = intel.temperature;
+        } else if (strcmp(trait, "saturation_label") == 0) {
+            candidate = intel.saturation_label;
+        } else if (strcmp(trait, "brightness_label") == 0) {
+            candidate = intel.brightness_label;
+        } else if (strcmp(trait, "family") == 0) {
+            candidate = intel.family;
+        }
+        if (candidate && value && strcasecmp(candidate, value) == 0) {
             n++;
         }
     }
@@ -289,18 +228,29 @@ static bool try_body_patterns(const circe_entry_t *entry, circe_reflection_t *ou
     }
 
     if (!entry->color_skipped && entry->color_hex[0] == '#') {
-        color_family_t fam = color_family_of(entry->color_hex);
-        if (fam != COLOR_FAM_UNKNOWN && count_color_family(fam) >= 2) {
-            if (fam == COLOR_FAM_COOL) {
-                copy_main(out, "Your recent colors have been mostly cool.");
-            } else if (fam == COLOR_FAM_WARM) {
-                copy_main(out, "Your recent colors have stayed near this range.");
-            } else {
-                copy_main(out, "Your recent colors have stayed near this range.");
+        circe_color_intel_t intel = {0};
+        if (circe_color_intel_from_entry(entry, &intel)) {
+            if (count_color_trait("saturation_label", "muted") >= 2 &&
+                strcmp(intel.saturation_label, "muted") == 0) {
+                copy_main(out, "Your recent colors have stayed mostly muted.");
+                copy_sub(out, "This is only an observation.");
+                out->is_recent_pattern = true;
+                return true;
             }
-            copy_sub(out, "This is only an observation.");
-            out->is_recent_pattern = true;
-            return true;
+            if (count_color_trait("temperature", intel.temperature) >= 2 &&
+                strcmp(intel.temperature, "cool") == 0) {
+                copy_main(out, "Your recent colors have been mostly cool.");
+                copy_sub(out, "This is only an observation.");
+                out->is_recent_pattern = true;
+                return true;
+            }
+            if (count_color_trait("temperature", intel.temperature) >= 2 &&
+                strcmp(intel.temperature, "warm") == 0) {
+                copy_main(out, "Your recent colors have stayed near this range.");
+                copy_sub(out, "This is only an observation.");
+                out->is_recent_pattern = true;
+                return true;
+            }
         }
     }
 
@@ -341,6 +291,8 @@ static bool generate_body_reflection(const circe_entry_t *entry, circe_reflectio
     } else if (!tone_is_unknown(entry)) {
         snprintf(line, sizeof(line), "I saved this as %s.", entry->emotion_label);
         copy_main(out, line);
+    } else if (circe_color_intel_format_observation(entry, line, sizeof(line))) {
+        copy_main(out, line);
     } else if (!entry->color_skipped && entry->color_hex[0] == '#' &&
                strcmp(entry->color_source, "touch_picker") == 0) {
         snprintf(line, sizeof(line), "I saved the color you chose: %s.", entry->color_hex);
@@ -362,8 +314,8 @@ static bool generate_body_reflection(const circe_entry_t *entry, circe_reflectio
         out->suggest_regulate = true;
     } else if (entry->body_area_count > 0 && !tone_is_unknown(entry)) {
         copy_sub(out, "We can return to this later.");
-    } else if (!entry->color_skipped && entry->color_hex[0] == '#') {
-        copy_sub(out, "We can return to this later.");
+    } else if (entry->has_color_intel || (!entry->color_skipped && entry->color_hex[0] == '#')) {
+        copy_sub(out, circe_copy_get(CIRCE_PATTERN_COLOR_INTEL_ONLY_YOU));
     } else {
         copy_sub(out, "");
     }
