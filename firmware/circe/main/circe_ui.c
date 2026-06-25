@@ -55,6 +55,8 @@ static lv_timer_t *s_nav_timer = NULL;
 static lv_obj_t *s_first_row = NULL;
 static circe_flow_step_t s_nav_back_step = CIRCE_FLOW_HOME;
 static circe_time_picker_t s_time_picker;
+static circe_storage_health_t s_diag_health;
+static bool s_diag_health_valid;
 
 static void btn_event_cb(lv_event_t *e);
 static void refresh_strand_arc_from_blocks(circe_strand_block_t *blocks, int count);
@@ -69,8 +71,57 @@ static void strand_note_saved_color(const char *color_hex)
 static void go_step(circe_flow_step_t step);
 static void apply_theme_to_shell(void);
 static void time_picker_done(bool saved, void *ctx);
+static void show_terminal_prompt_text(const char *text);
 
-static void worker_busy_notice(void);
+static void diagnostics_format_health_line(char *line, size_t len, const circe_storage_health_t *h)
+{
+    if (!line || len == 0 || !h) {
+        return;
+    }
+    snprintf(line, len, "ready:%s entries:%d probe:%s", h->storage_ready ? "yes" : "no", h->entry_count,
+             h->probe_passed ? "PASS" : "FAIL");
+}
+
+static void diagnostics_show_health_feed(void)
+{
+    char line[160];
+    if (!s_diag_health_valid) {
+        show_terminal_prompt_text("checking storage...");
+        return;
+    }
+    diagnostics_format_health_line(line, sizeof(line), &s_diag_health);
+    show_terminal_prompt_text(line);
+}
+
+static void diagnostics_apply_health(const circe_storage_health_t *h)
+{
+    if (!h) {
+        return;
+    }
+    s_diag_health = *h;
+    s_diag_health_valid = true;
+    if (s_engine) {
+        s_engine->storage_ready = h->storage_ready;
+    }
+    if (s_engine && s_engine->step == CIRCE_FLOW_DIAGNOSTICS) {
+        diagnostics_show_health_feed();
+    }
+}
+
+static bool post_health_check(void)
+{
+    s_diag_health_valid = false;
+    circe_hud_set_subline(&s_hud, "Checking...");
+    diagnostics_show_health_feed();
+    return circe_worker_post_health_check();
+}
+
+static bool post_probe(void)
+{
+    circe_hud_set_subline(&s_hud, "Probing...");
+    return circe_worker_post_storage_probe();
+}
+
 static bool enqueue_save_async(circe_flow_step_t on_success, int msg_key, bool quick_subline);
 static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx);
 
@@ -295,8 +346,6 @@ static void setup_terminal_shell(circe_flow_step_t back_step, const char *status
     begin_content_column();
 }
 
-static void show_terminal_prompt_text(const char *text);
-
 static void show_terminal_prompt_feed(circe_pattern_key_t key)
 {
     show_terminal_prompt_text(circe_copy_get(key));
@@ -385,6 +434,12 @@ static void circe_ui_worker_done(const circe_worker_completion_t *c, void *ctx)
     case CIRCE_WORKER_STORAGE_PROBE:
         circe_hud_set_subline(&s_hud, c->summary);
         go_step(CIRCE_FLOW_DIAGNOSTICS);
+        break;
+    case CIRCE_WORKER_HEALTH_CHECK:
+    case CIRCE_WORKER_STORAGE_STATUS:
+    case CIRCE_WORKER_DIAGNOSTICS_REFRESH:
+        diagnostics_apply_health(&c->health);
+        circe_hud_set_subline(&s_hud, c->summary);
         break;
     case CIRCE_WORKER_LOAD_REVIEW:
         if (c->review_found && c->success) {
@@ -571,6 +626,8 @@ static void btn_event_cb(lv_event_t *e)
         worker_post_or_busy(post_test_save);
     } else if (strcmp(id, "storage_reinit") == 0) {
         worker_post_or_busy(post_reinit);
+    } else if (strcmp(id, "storage_probe") == 0) {
+        worker_post_or_busy(post_probe);
     } else if (strncmp(id, "nav:", 4) == 0) {
         go_step((circe_flow_step_t)atoi(id + 4));
     } else if (strncmp(id, "theme:", 6) == 0) {
@@ -884,19 +941,17 @@ void circe_ui_show_step(circe_flow_step_t step)
 
     case CIRCE_FLOW_DIAGNOSTICS: {
         setup_terminal_shell(CIRCE_FLOW_MORE, "storage diagnostics");
-        circe_storage_health_t h;
-        circe_storage_health_check(&h);
-        char line[160];
-        snprintf(line, sizeof(line), "ready:%s entries:%d", h.storage_ready ? "yes" : "no", h.entry_count);
-        show_terminal_prompt_text(line);
         s_nav_back_step = CIRCE_FLOW_MORE;
         create_scroll_panel();
+        diagnostics_show_health_feed();
         add_btn("TEST SAVE", "test_save");
+        add_btn("RUN PROBE", "storage_probe");
         add_btn("REINIT STORAGE", "storage_reinit");
         add_btn("REBUILD INDEX", "rebuild");
         add_btn("SELF TEST", "selftest");
         add_btn("HOME", "home");
         focus_first_obj(s_first_row);
+        worker_post_or_busy(post_health_check);
         break;
     }
 

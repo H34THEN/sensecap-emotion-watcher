@@ -16,6 +16,9 @@ typedef enum {
     CIRCE_WORKER_STORAGE_PROBE,
     CIRCE_WORKER_REINIT_STORAGE,
     CIRCE_WORKER_LOAD_REVIEW,
+    CIRCE_WORKER_HEALTH_CHECK,
+    CIRCE_WORKER_STORAGE_STATUS,
+    CIRCE_WORKER_DIAGNOSTICS_REFRESH,
 } circe_worker_cmd_type_t;
 
 typedef struct {
@@ -31,6 +34,7 @@ typedef struct {
     int rebuild_count;
     bool storage_ready;
     bool review_found;
+    circe_storage_health_t health;
     circe_flow_step_t success_step;
     int success_message;
     bool show_quick_subline;
@@ -49,3 +53,6 @@ bool circe_worker_post_rebuild_index(void);
 bool circe_worker_post_storage_probe(void);
 bool circe_worker_post_reinit_storage(void);
 bool circe_worker_post_load_review(void);
+bool circe_worker_post_health_check(void);
+bool circe_worker_post_storage_status(void);
+bool circe_worker_post_diagnostics_refresh(void);

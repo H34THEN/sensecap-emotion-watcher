@@ -70,7 +70,9 @@ I circe_storage: save self-test: JSON OK ...
 
 ## Remaining risk
 
-`CIRCE_FLOW_STRAND` screen still loads strand colors via `circe_storage_today_strand()` inside `circe_ui_show_step()` (lighter than save self-test, but still LVGL-context I/O). Move to worker if strand navigation ever overflows.
+~~`CIRCE_FLOW_DIAGNOSTICS` screen still called `circe_storage_health_check()` inside `circe_ui_show_step()`~~ — **fixed 2026-06-24** (Diagnostics Worker Safety phase). Health check now runs on `circe_worker`. See [DIAGNOSTICS_LVGL_STORAGE_RISK.md](DIAGNOSTICS_LVGL_STORAGE_RISK.md).
+
+`CIRCE_FLOW_STRAND` screen still loads strand colors via `circe_storage_today_strand()` inside `circe_ui_show_step()` (Strand remains disabled in UI). Move to worker if strand navigation is re-enabled.
 
 ---
 

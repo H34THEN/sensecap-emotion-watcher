@@ -15,6 +15,18 @@ Inspired by mood blankets, weather blankets, and crochet color-tracking projects
 
 ## Color picker
 
+### Current (stable milestone)
+
+Preset terminal rows on optional color step — see `circe_quick_color_labels[]` in firmware.
+
+### Planned v2 (design only)
+
+Touch-drag circular field with magnifier, live hex, encoder fine-tune, preset fallback.
+
+See [COLOR_PICKER_V2_TOUCH_FIELD.md](../color/COLOR_PICKER_V2_TOUCH_FIELD.md).
+
+### Legacy notes
+
 - **Wheel or palette grid** sized for 412×412 display.
 - **Favorites row** — user-defined swatches (from calibration mode).
 - **Recent colors** — last N entry colors for quick reuse.

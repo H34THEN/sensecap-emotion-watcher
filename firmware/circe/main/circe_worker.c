@@ -157,6 +157,16 @@ static void run_load_review(circe_worker_completion_t *out)
     }
 }
 
+static void run_health_check(circe_worker_completion_t *out)
+{
+    circe_storage_health_check(&out->health);
+    out->storage_ready = out->health.storage_ready;
+    out->success = true;
+    snprintf(out->summary, sizeof(out->summary), "ready:%s entries:%d probe:%s",
+             out->health.storage_ready ? "yes" : "no", out->health.entry_count,
+             out->health.probe_passed ? "PASS" : "FAIL");
+}
+
 static void worker_task(void *arg)
 {
     (void)arg;
@@ -191,6 +201,11 @@ static void worker_task(void *arg)
             break;
         case CIRCE_WORKER_LOAD_REVIEW:
             run_load_review(&result);
+            break;
+        case CIRCE_WORKER_HEALTH_CHECK:
+        case CIRCE_WORKER_STORAGE_STATUS:
+        case CIRCE_WORKER_DIAGNOSTICS_REFRESH:
+            run_health_check(&result);
             break;
         default:
             result.success = false;
@@ -286,4 +301,19 @@ bool circe_worker_post_reinit_storage(void)
 bool circe_worker_post_load_review(void)
 {
     return post_simple(CIRCE_WORKER_LOAD_REVIEW);
+}
+
+bool circe_worker_post_health_check(void)
+{
+    return post_simple(CIRCE_WORKER_HEALTH_CHECK);
+}
+
+bool circe_worker_post_storage_status(void)
+{
+    return post_simple(CIRCE_WORKER_STORAGE_STATUS);
+}
+
+bool circe_worker_post_diagnostics_refresh(void)
+{
+    return post_simple(CIRCE_WORKER_DIAGNOSTICS_REFRESH);
 }
