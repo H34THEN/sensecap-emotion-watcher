@@ -35,6 +35,8 @@ Optional, local audio cues for save confirmation and regulation support. Not con
 
 Stored in NVS: namespace `circe_voice`, key `mode`.
 
+Boot log: `voice init mode=off` unless NVS has SOFT saved. Manual test: enable SOFT → TEST TONE → expect banner `PLAYING TONE` / `TONE SENT` or `AUDIO UNAVAILABLE`. See `docs/ui/SCREEN_CAPTURE_GUIDE.md`.
+
 ---
 
 ## Hardware

@@ -99,3 +99,15 @@ See `docs/PHASE-RC1-VISUAL-POLISH-PASS-REPORT.md`
 ## Visual editing
 
 See `docs/ui/UI_FILE_MAP.md` — section **RC1 Visual Editing Quick Reference**
+
+---
+
+## Hardware sign-off (2026-06-26)
+
+Serial boot validation passed on commit `63b794c`. Full on-device UI checklist and screen captures:
+
+- `docs/releases/CIRCE_RC1_HARDWARE_SIGNOFF.md`
+- `docs/ui/SCREEN_CAPTURE_GUIDE.md`
+- `docs/PHASE-RC1-HARDWARE-SIGNOFF-REPORT.md`
+
+Tag `circe-standalone-mvp-rc1-hardware-signed` deferred until user completes manual capture checklist on Watcher hardware.

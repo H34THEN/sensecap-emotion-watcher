@@ -84,6 +84,10 @@ SETTINGS
 
 See `docs/ui/RC1_VISUAL_POLISH_PASS.md` for selector behavior, status banner, and triple-press Home.
 
+**UI polish tag:** `circe-standalone-mvp-rc1-ui-polish` (commit `63b794c`).
+
+**Hardware sign-off:** `docs/releases/CIRCE_RC1_HARDWARE_SIGNOFF.md` · **Screen captures:** `docs/ui/SCREEN_CAPTURE_GUIDE.md`
+
 ---
 
 ## Validation checklist (RC1)
@@ -93,9 +97,9 @@ Legend: ✅ serial-verified · ⚠️ manual required · ❌ known issue
 ### Boot
 | Item | Status |
 |------|--------|
-| Device boots | ✅ |
-| Home appears | ⚠️ |
-| Neon Terminal readable | ⚠️ |
+| Device boots | ✅ (2026-06-26 sign-off flash) |
+| Home appears | ⚠️ serial: home wheel 6 options |
+| Neon Terminal readable | ⚠️ user visual |
 | SD mounts | ✅ (storage probe logs) |
 | Worker starts | ✅ |
 | No panic / boot loop / LVGL overflow | ✅ (serial) |
@@ -115,7 +119,7 @@ Legend: ✅ serial-verified · ⚠️ manual required · ❌ known issue
 ### Memory / Review
 | Item | Status |
 |------|--------|
-| TODAY shows entries | ⚠️ fix applied — confirm on device |
+| TODAY shows entries | ⚠️ serial: 2 today items — confirm on display |
 | Other categories / PATTERNS / BODY MAP | ⚠️ |
 | Entry detail / delete | ⚠️ |
 

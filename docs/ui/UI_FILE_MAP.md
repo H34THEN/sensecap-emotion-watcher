@@ -239,8 +239,47 @@ Area/sensation buttons are created in `circe_ui.c` from `circe_body_areas[]` / `
 
 ---
 
+## Screen capture cross-reference
+
+Use with **`docs/ui/SCREEN_CAPTURE_GUIDE.md`**. For each screen: **path to reach it**, **layout file**, **copy**, **selector**, **banner**, **navigation**.
+
+| Screen | Path | Layout / visual | Copy text | Selector | Status banner | Nav callbacks |
+|--------|------|-----------------|-----------|----------|---------------|---------------|
+| HOME | Boot | `circe_home_wheel.c`, `circe_daily.c` | `circe_copy.c` (`home.*`, `daily.*`) | `circe_home_wheel.c` | — | `circe_ui.c` `home_wheel_open_selected()` |
+| BODY AREA | HOME → BODY CHECK-IN | `circe_selector.c`, `circe_ui.c` | `circe_copy.c` (`body.*`) | `circe_selector.c` | — | `circe_ui.c` `build_body_area_selector()` |
+| BODY SENSATION | area → press | same | `circe_copy.c` | `circe_selector.c` | — | `build_body_sensation_selector()` |
+| INTENSITY | sensation → press | `circe_ui.c` slider row | `circe_copy.c` | — (slider) | — | `next_intensity` btn handler |
+| EMOTIONAL TONE | intensity flow | `circe_selector.c` | `circe_copy.c` (`tone.*`) | dynamic selector | — | `circe_ui.c` tone builder |
+| COLOR FIELD | tone → picker | `circe_color_picker.c` | `circe_copy.c` | — | — | `circe_ui.c` color steps |
+| COLOR PRESETS | picker flow | `circe_ui.c` | `circe_copy.c` | buttons / presets | — | save confirm handlers |
+| SAVING / ENTRY SAVED | save | — | `circe_copy.c` (`STATUS_*`) | — | `circe_status_banner.c` | `circe_ui.c` `enqueue_save_async`, worker done |
+| REFLECTION | post-save | `circe_reflection.c`, terminal | `circe_copy.c` | buttons | — | `circe_ui.c` reflection case |
+| PHOTO PROMPT | reflection → photo | `circe_photo.c` | `circe_copy.c` | buttons | optional banner | `circe_ui.c` photo handlers |
+| REVIEW MENU | HOME → REVIEW | `circe_selector.c` | menu labels in `circe_ui.c` | `s_memory_menu_items` | LOADING on sub-screens | `open_memory_menu()` |
+| TODAY BROWSER | REVIEW → TODAY | `circe_memory_browser.c`, `circe_terminal.c` | `circe_timeline.c` formatters | encoder browse | LOADING MEMORY | worker `LOAD_TIMELINE` → `show_step` browser init |
+| ENTRY DETAIL | browse → press | `circe_ui.c`, terminal | `circe_copy.c` | buttons VIEW/DELETE | DELETING | worker load/delete |
+| PATTERNS | REVIEW → PATTERNS | `circe_patterns.c`, terminal | `circe_copy.c` | pattern browser | LOADING PATTERNS | `circe_ui.c` patterns cases |
+| BODY MAP | REVIEW → BODY MAP | `circe_body_map.c`, terminal | `circe_copy.c` | body map browser | LOADING BODY MAP | `circe_ui.c` body map cases |
+| REGULATE MENU | HOME → REGULATE | `circe_selector.c` | `s_regulation_menu_items` | selector | — | `CIRCE_FLOW_GROUNDING` |
+| BREATHING | REGULATE → BREATHING | `circe_regulation.c` | `circe_copy.c` (`reg.*`) | — | — | regulation timers; triple → `go_home_safe()` |
+| 5-4-3-2-1 / SENSORY / BILATERAL | REGULATE menu | `circe_regulation.c` | `circe_copy.c` | — | — | `circe_ui.c` regulation routing |
+| SETTINGS | HOME → SETTINGS | `circe_selector.c` | `s_settings_menu_items` | selector | — | `CIRCE_FLOW_MORE` |
+| VOICE CUES | SETTINGS → VOICE CUES | `circe_selector.c` | `circe_copy.c` voice keys | `s_voice_menu_items` | PLAYING/TONE/AUDIO | `circe_voice.c`, voice handlers |
+| APPEARANCE | SETTINGS → APPEARANCE | `circe_theme.c` | `circe_copy.c` | theme selector | APPLIED banner | theme pick handlers |
+| TIME SET | SETTINGS → TIME | `circe_time_picker.c` | `circe_copy.c` | time picker | — | `circe_time.c` NVS |
+| DIAGNOSTICS | HOME → DIAGNOSTICS | `circe_selector.c` | `s_diagnostics_menu_items` | selector | TEST SAVE status | worker diagnostics jobs |
+| Triple-press Home | any (most screens) | — | `circe_copy.c` `NAV_TRIPLE_HOME` hint | — | — | `circe_encoder.c`, `go_home_safe()` in `circe_ui.c` |
+
+**Navigation module:** `circe_encoder.c/h` — double=back, triple=home (550 ms window), long=settings on terminal nav.
+
+**Banner API:** `circe_status_banner_show()` / `show_timed()` / `hide()` — triggered from `circe_ui.c` via `ui_show_status_*()`.
+
+---
+
 ## Related docs
 
+- `docs/ui/SCREEN_CAPTURE_GUIDE.md` — photo checklist for every screen
 - `docs/ui/COMPANION_INTERFACE_SPEC.md` — screen behavior spec
 - `docs/memory/MEMORY_TIMELINE_MVP.md` — timeline caps and browse
 - `docs/releases/CIRCE_STANDALONE_MVP_RC1.md` — RC1 feature list and validation
+- `docs/releases/CIRCE_RC1_HARDWARE_SIGNOFF.md` — hardware sign-off pass/fail table

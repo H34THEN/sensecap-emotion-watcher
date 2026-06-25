@@ -14,8 +14,8 @@ Single-focus selectors for home/review/settings/regulate/voice/diagnostics; cent
 ## Build / flash
 
 **Build:** PASS — `circe.bin` `0xC8610` (820752 bytes)  
-**Flash:** (see final report)  
-**Hardware:** Partial serial boot validation
+**Flash:** PASS — `idf.py --port /dev/ttyACM1 -b 2000000 app-flash`  
+**Hardware:** Serial boot validation (see `docs/PHASE-RC1-HARDWARE-SIGNOFF-REPORT.md`)
 
 ---
 
@@ -31,4 +31,5 @@ Single-focus selectors for home/review/settings/regulate/voice/diagnostics; cent
 
 ---
 
-**Commit:** (pending)
+**Commit:** `63b794c` — `fix(ui): improve circular navigation and status banners`  
+**Tag:** `circe-standalone-mvp-rc1-ui-polish`
