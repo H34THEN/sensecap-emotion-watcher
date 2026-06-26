@@ -1812,7 +1812,6 @@ void circe_ui_show_step(circe_flow_step_t step)
 
     switch (step) {
     case CIRCE_FLOW_HOME: {
-        circe_home_bg_show();
         show_home();
         if (!s_hud.viewport) {
             ESP_LOGE(TAG, "HOME: viewport null");

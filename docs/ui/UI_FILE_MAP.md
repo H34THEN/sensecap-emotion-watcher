@@ -15,8 +15,8 @@ Reference for manual visual layout and styling edits. Paths are relative to `fir
 5. **`circe_terminal.c/h`** — terminal feed layout
 6. **`circe_color_picker.c/h`** — color field canvas
 7. **`circe_regulation.c/h`** — regulation visuals
-8. **`firmware/circe/main/assets/circe_homepage_bg.c/h`** — embedded Home HUD background (generated)
-9. **`docs/circe-background-home2.png`** — source PNG for Home background (synced to `circe_bg_home.png`)
+8. **`firmware/circe/main/circe_home_bg.c/h`** — Home outer ring (4px); no bitmap background
+9. **`docs/circe-background-home2.png`** — archived source art (not embedded in firmware)
 10. **`docs/bugs/HOME_BACKGROUND_BLUE_ARTIFACTS.md`** — alpha/RGB565 artifact investigation
 11. **Avoid** worker/storage files unless debugging behavior
 
@@ -26,7 +26,7 @@ Workflow: `docs/ui/MANUAL_UI_EDITING_WORKFLOW.md`
 
 | Screen | Main layout file | Visual tokens | Copy file | Safe to edit |
 | ------ | ---------------- | ------------- | --------- | ------------ |
-| Home | `circe_home_wheel.c`, `circe_ui.c`, `circe_home_bg.c` | `CIRCE_UI_HOME_*`, `CIRCE_UI_HOME_BG_*` | `circe_copy.c` | Yes — tokens + bg toggle |
+| Home | `circe_home_wheel.c`, `circe_ui.c`, `circe_home_bg.c` | `CIRCE_UI_HOME_OUTER_RING_*` | `circe_copy.c` | Yes — ring width/size tokens |
 | Review menu | `circe_selector.c`, `circe_ui.c` | `CIRCE_UI_SELECTOR_*` | `circe_ui.c` labels | Yes — tokens |
 | Today browser | `circe_memory_browser.c`, `circe_terminal.c` | `CIRCE_UI_TERMINAL_*` | `circe_timeline.c` | Yes — feed layout |
 | Entry detail | `circe_ui.c`, terminal | `CIRCE_UI_TERMINAL_*`, `CIRCE_UI_CONTENT_*` | `circe_copy.c` | Partial — buttons in ui.c |
