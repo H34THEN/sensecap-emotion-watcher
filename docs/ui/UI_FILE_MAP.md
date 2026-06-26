@@ -16,7 +16,7 @@ Reference for manual visual layout and styling edits. Paths are relative to `fir
 6. **`circe_color_picker.c/h`** — color field canvas
 7. **`circe_regulation.c/h`** — regulation visuals
 8. **`firmware/circe/main/assets/circe_homepage_bg.c/h`** — embedded Home HUD background (generated)
-9. **`docs/circe_bg_home.png`** — source PNG for Home background (regenerate asset after edits)
+9. **`docs/circe-background-home2.png`** — source PNG for Home background (synced to `circe_bg_home.png`)
 10. **`docs/bugs/HOME_BACKGROUND_BLUE_ARTIFACTS.md`** — alpha/RGB565 artifact investigation
 11. **Avoid** worker/storage files unless debugging behavior
 

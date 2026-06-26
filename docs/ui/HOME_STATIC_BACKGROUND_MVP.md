@@ -8,7 +8,7 @@ Embedded full-screen HUD background for the **Home** screen only.
 
 | Property | Value |
 |----------|-------|
-| Path | `docs/circe_bg_home.png` (also synced to `docs/circe_homepage_bg.png`) |
+| Path | `docs/circe-background-home2.png` (synced to `docs/circe_bg_home.png`) |
 | Source dimensions | **1254 × 1254** px |
 | Color mode | RGB (IHDR color type 2 — no alpha channel in current file) |
 | Design intent | Square PNG aligned for circular Watcher display |
