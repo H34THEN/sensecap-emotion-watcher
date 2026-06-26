@@ -119,6 +119,63 @@ def flatten_on_black(rgba) -> object:
     return Image.alpha_composite(black, rgba).convert("RGB")
 
 
+def _clamp8(v: float) -> int:
+    return max(0, min(255, int(round(v))))
+
+
+def rgb565_bytes_from_image(rgb_image, swap_bytes: bool, dither: bool) -> tuple[list[int], list[tuple[int, int, int]]]:
+    w, h = rgb_image.size
+    if not dither:
+        pixels = list(rgb_image.getdata())
+        out: list[int] = []
+        for r, g, b in pixels:
+            val = rgb888_to_rgb565(r, g, b)
+            lo, hi = rgb565_to_bytes(val, swap_bytes)
+            out.extend((lo, hi))
+        return out, pixels
+
+    # Floyd-Steinberg dithering in RGB888 before RGB565 quantize preserves gray metal tones.
+    buf = [[list(rgb_image.getpixel((x, y))) for x in range(w)] for y in range(h)]
+    out_vals: list[int] = []
+    preview: list[tuple[int, int, int]] = []
+    for y in range(h):
+        for x in range(w):
+            r, g, b = buf[y][x]
+            val = rgb888_to_rgb565(r, g, b)
+            qr, qg, qb = rgb565_to_rgb888(val)
+            out_vals.append(val)
+            preview.append((qr, qg, qb))
+            er = r - qr
+            eg = g - qg
+            eb = b - qb
+            if x + 1 < w:
+                n = buf[y][x + 1]
+                n[0] = _clamp8(n[0] + er * 7 / 16)
+                n[1] = _clamp8(n[1] + eg * 7 / 16)
+                n[2] = _clamp8(n[2] + eb * 7 / 16)
+            if y + 1 < h:
+                if x > 0:
+                    n = buf[y + 1][x - 1]
+                    n[0] = _clamp8(n[0] + er * 3 / 16)
+                    n[1] = _clamp8(n[1] + eg * 3 / 16)
+                    n[2] = _clamp8(n[2] + eb * 3 / 16)
+                n = buf[y + 1][x]
+                n[0] = _clamp8(n[0] + er * 5 / 16)
+                n[1] = _clamp8(n[1] + eg * 5 / 16)
+                n[2] = _clamp8(n[2] + eb * 5 / 16)
+                if x + 1 < w:
+                    n = buf[y + 1][x + 1]
+                    n[0] = _clamp8(n[0] + er * 1 / 16)
+                    n[1] = _clamp8(n[1] + eg * 1 / 16)
+                    n[2] = _clamp8(n[2] + eb * 1 / 16)
+
+    out: list[int] = []
+    for val in out_vals:
+        lo, hi = rgb565_to_bytes(val, swap_bytes)
+        out.extend((lo, hi))
+    return out, preview
+
+
 def load_flattened_rgb(path: str, target: int) -> tuple[object, SourceReport, bool, bool]:
     try:
         from PIL import Image
@@ -136,16 +193,6 @@ def load_flattened_rgb(path: str, target: int) -> tuple[object, SourceReport, bo
     square_rgba, resized, cropped = resize_or_cover_to_square(rgba, target)
     flattened = flatten_on_black(square_rgba)
     return flattened, report, resized, cropped
-
-
-def rgb565_bytes_from_image(rgb_image, swap_bytes: bool) -> tuple[list[int], list[tuple[int, int, int]]]:
-    pixels = list(rgb_image.getdata())
-    out: list[int] = []
-    for r, g, b in pixels:
-        val = rgb888_to_rgb565(r, g, b)
-        lo, hi = rgb565_to_bytes(val, swap_bytes)
-        out.extend((lo, hi))
-    return out, pixels
 
 
 def save_rgb565_preview(byte_data: list[int], target: int, path: str, swap_bytes: bool) -> None:
@@ -173,6 +220,7 @@ def emit_c_source(
     resized: bool,
     cropped: bool,
     swap_bytes: bool,
+    dither: bool,
 ) -> str:
     data_size = target * target * 2
     lines: list[str] = []
@@ -188,6 +236,8 @@ def emit_c_source(
         lines.append("/* Resized: yes */")
     if cropped:
         lines.append("/* Center-crop: yes */")
+    if dither:
+        lines.append("/* Dither: Floyd-Steinberg RGB565 */")
     lines.append("")
     lines.append('#include "circe_homepage_bg.h"')
     lines.append("")
@@ -284,6 +334,11 @@ def main() -> int:
         action="store_true",
         help="Emit high,low byte pairs (only if LV_COLOR_16_SWAP=1)",
     )
+    parser.add_argument(
+        "--no-dither",
+        action="store_true",
+        help="Disable Floyd-Steinberg dithering before RGB565 quantize",
+    )
     args = parser.parse_args()
 
     flattened, report, resized, cropped = load_flattened_rgb(args.png, args.target_size)
@@ -294,7 +349,7 @@ def main() -> int:
     preview_path = args.preview or os.path.splitext(args.out_c)[0] + ".preview.png"
     rgb565_preview_path = args.rgb565_preview or os.path.splitext(args.out_c)[0] + ".rgb565_preview.png"
 
-    byte_data, _ = rgb565_bytes_from_image(flattened, args.swap_bytes)
+    byte_data, _ = rgb565_bytes_from_image(flattened, args.swap_bytes, dither=not args.no_dither)
     if len(byte_data) != args.target_size * args.target_size * 2:
         print("byte payload size mismatch", file=sys.stderr)
         return 1
@@ -315,6 +370,7 @@ def main() -> int:
         resized,
         cropped,
         args.swap_bytes,
+        not args.no_dither,
     )
     h_text = emit_header(args.symbol, args.target_size)
 

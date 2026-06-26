@@ -260,6 +260,7 @@ void circe_hud_show_static_bg_home(circe_hud_t *hud)
         return;
     }
     circe_hud_set_reset_mode(hud, true);
+    set_hidden(hud->safe_ring, true);
     lv_obj_add_flag(hud->heading, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(hud->response, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(hud->prompt, LV_OBJ_FLAG_HIDDEN);

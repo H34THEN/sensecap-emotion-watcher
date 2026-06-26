@@ -1799,10 +1799,15 @@ void circe_ui_show_step(circe_flow_step_t step)
     circe_status_banner_dismiss_indefinite();
     if (step != CIRCE_FLOW_HOME) {
         circe_home_bg_hide();
+        if (s_hud.safe_ring) {
+            lv_obj_clear_flag(s_hud.safe_ring, LV_OBJ_FLAG_HIDDEN);
+        }
     }
     setup_encoder_group();
+    if (step != CIRCE_FLOW_HOME) {
+        circe_hud_set_reset_mode(&s_hud, false);
+    }
     apply_theme_to_shell();
-    circe_hud_set_reset_mode(&s_hud, false);
     circe_terminal_nav_enable(true);
 
     switch (step) {
@@ -1820,6 +1825,7 @@ void circe_ui_show_step(circe_flow_step_t step)
         circe_terminal_nav_enable(false);
         circe_home_wheel_create(&s_home_wheel, s_content, 0);
         post_load_daily_companion();
+        circe_home_bg_show();
         break;
     }
 

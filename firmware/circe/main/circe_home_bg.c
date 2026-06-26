@@ -29,6 +29,8 @@ void circe_home_bg_init(lv_obj_t *scr)
     lv_obj_set_pos(s_img, CIRCE_UI_HOME_BG_X, CIRCE_UI_HOME_BG_Y);
     lv_img_set_size_mode(s_img, LV_IMG_SIZE_MODE_REAL);
     lv_img_set_antialias(s_img, false);
+    lv_obj_set_style_img_recolor_opa(s_img, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_opa(s_img, LV_OPA_COVER, 0);
     lv_obj_clear_flag(s_img, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_clear_flag(s_img, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(s_img, LV_OBJ_FLAG_HIDDEN);
